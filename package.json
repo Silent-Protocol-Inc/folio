@@ -1,0 +1,21 @@
+{
+  "name": "folio-personal-finance",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "start": "node --env-file=.env scripts/serve.mjs",
+    "account:add": "node --env-file=.env scripts/account.mjs"
+  },
+  "dependencies": {
+    "@noble/hashes": "2.2.0",
+    "@simplewebauthn/browser": "14.0.0",
+    "@simplewebauthn/server": "14.1.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.27.3"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

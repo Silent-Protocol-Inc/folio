@@ -1,0 +1,24 @@
+const currency=/^[A-Z]{3}$/;
+const date=/^\d{4}-\d{2}-\d{2}$/;
+const text=value=>typeof value==='string'&&value.length<=2000;
+const record=list=>Array.isArray(list)&&list.length<=20000;
+const dated=value=>typeof value==='string'&&date.test(value)&&Number.isFinite(Date.parse(value));
+const coded=value=>typeof value==='string'&&currency.test(value);
+const id=value=>text(value)&&value.length>0;
+const positive=value=>Number.isFinite(value)&&value>0;
+const nonnegative=value=>Number.isFinite(value)&&value>=0;
+const notes=value=>value===undefined||text(value);
+const list=(rows,validate)=>record(rows)&&rows.every(row=>row&&typeof row==='object'&&validate(row));
+const general=row=>id(row.id)&&text(row.title)&&notes(row.note)&&coded(row.currency)&&positive(row.amount)&&positive(row.rate);
+const moneyPoint=row=>dated(row.date)&&Number.isFinite(row.amount);
+const activity=row=>id(row.id)&&dated(row.date)&&['buy','sell','income'].includes(row.type)&&Number.isFinite(row.quantity)&&nonnegative(row.price)&&nonnegative(row.fee)&&positive(row.rate)&&notes(row.note);
+const holding=row=>id(row.id)&&text(row.name)&&text(row.symbol)&&text(row.kind)&&text(row.account)&&coded(row.currency)&&list(row.activity,activity)&&
+ (row.mark===null||(row.mark&&nonnegative(row.mark.price)&&positive(row.mark.rate)&&dated(row.mark.date)));
+export function admissibleWorkspace(state){
+ return state?.version===1&&state.demo===false&&coded(state.currency)&&positive(state.reportRate)&&(!state.reportDate||dated(state.reportDate))&&
+  list(state.transactions,row=>general(row)&&dated(row.date)&&['income','expense'].includes(row.type)&&text(row.account)&&text(row.category))&&
+  list(state.debts,row=>general(row)&&text(row.source)&&['owe','owed'].includes(row.direction)&&(!row.due||dated(row.due))&&Number.isInteger(row.lead)&&list(row.payments,moneyPoint))&&
+  list(state.subscriptions,row=>general(row)&&dated(row.due)&&['monthly','weekly','yearly'].includes(row.cycle)&&['active','paused'].includes(row.status)&&Number.isInteger(row.lead))&&
+  list(state.goals,row=>general(row)&&(!row.due||dated(row.due))&&list(row.contributions,moneyPoint))&&
+  list(state.budgets,row=>general(row)&&text(row.category))&&list(state.investments,holding);
+}

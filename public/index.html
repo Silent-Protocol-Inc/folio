@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#101118">
+<meta name="description" content="Folio, your private personal finance workspace.">
+<title>Folio — Personal Finance</title><link rel="icon" href="mark.svg" type="image/svg+xml"><link rel="stylesheet" href="style.css"><script defer src="/auth.js"></script>
+</head>
+<body>
+<section class="auth-layout" id="auth-layout" aria-label="Folio sign-in">
+<div class="auth-art">
+ <div class="auth-art-image" aria-hidden="true"></div>
+ <a class="brand auth-brand" href="/" aria-label="Folio home"><img src="/mark.svg" width="42" height="42" alt="">folio<span>.</span></a>
+ <div class="auth-art-copy"><h1>Your money.<br>Your workspace.</h1><p>See what you have, what you owe, and what you’re working toward.</p></div>
+</div>
+<div class="auth-side">
+ <div class="auth-pane">
+  <div class="auth-lock" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 1 1 8 0v3m-4 4v3"/></svg></div>
+  <div id="auth-loading" role="status">Checking your session…</div>
+  <div id="auth-login" hidden>
+   <h2>Sign in to Folio</h2><p>Open your personal finance workspace.</p>
+   <form id="login-form" autocomplete="on">
+    <label>Email<input name="email" type="email" autocomplete="username webauthn" inputmode="email" placeholder="you@example.com" required maxlength="254"></label>
+    <div class="auth-field"><label for="login-password">Password</label><span class="password-field"><input id="login-password" name="password" type="password" autocomplete="current-password" required maxlength="128"><button type="button" class="password-toggle" aria-label="Show password" aria-pressed="false">Show</button></span></div>
+    <p class="auth-error" role="alert" hidden></p>
+    <button type="submit" class="btn primary auth-submit">Sign in <span aria-hidden="true">→</span></button>
+    <div class="auth-divider"><span>or</span></div>
+    <button type="button" class="btn auth-passkey" id="passkey-login"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="10" r="4"/><path d="m11 13 8 8m-4-4 3-3m-1 5 3-3"/></svg>Sign in with a passkey</button>
+   </form>
+  </div>
+  <div id="auth-change" hidden>
+   <h2>Set a new password</h2><p>Replace your temporary password to open your workspace.</p>
+   <form id="first-password-form">
+    <label>Temporary password<input name="currentPassword" type="password" autocomplete="current-password" required maxlength="128"></label>
+    <label>New password<input name="newPassword" type="password" autocomplete="new-password" required minlength="8" maxlength="128"></label>
+    <label>Confirm new password<input name="confirmation" type="password" autocomplete="new-password" required minlength="8" maxlength="128"></label>
+    <small>Use at least 8 characters.</small><p class="auth-error" role="alert" hidden></p>
+    <button type="submit" class="btn primary auth-submit">Save password and continue</button>
+    <button type="button" class="text-button" id="first-sign-out">Sign out</button>
+   </form>
+  </div>
+ </div>
+</div>
+<noscript><p>Enable JavaScript to sign in to Folio.</p></noscript>
+</section>
+<div id="app-shell" hidden>
+<a class="skip" href="#main">Skip to content</a>
+<div class="shell">
+<aside class="sidebar" aria-label="Sidebar">
+<a class="brand" href="#overview"><img src="mark.svg" width="38" height="38" alt="">folio<span>.</span></a>
+<div class="workspace"><span class="ico" data-icon="wallet"></span><div><strong>Personal</strong><small>Workspace</small></div></div>
+<nav id="navigation" aria-label="Main navigation"></nav>
+<div class="side-foot"><button class="side-link" data-action="settings"><span data-icon="settings"></span>Settings</button><div class="profile"><span class="avatar" id="account-initial"></span><div><strong id="account-name"></strong><small>Personal workspace</small></div></div></div>
+</aside>
+<div class="stage">
+<header class="topbar"><a class="brand mobile-brand" href="#overview"><img src="mark.svg" width="32" height="32" alt="">folio<span>.</span></a><div class="breadcrumb">Workspace <span data-icon="chevron"></span><strong id="crumb">Overview</strong></div><div class="cluster"><button class="btn icon-button" data-action="reminders" aria-label="Reminders" title="Reminders"><span data-icon="bell"></span><i id="bell-dot" hidden></i></button><button class="btn primary" data-action="transaction"><span data-icon="plus"></span>Add transaction</button></div></header>
+<main id="main" tabindex="-1"></main>
+</div><nav id="mobile-nav" class="mobile-nav" aria-label="Mobile navigation"></nav>
+</div>
+<dialog id="dialog" aria-labelledby="dialog-title"></dialog><div id="toast" role="status" aria-live="polite"></div>
+<input id="import-file" type="file" accept=".json,application/json" hidden>
+</div>
+</body>
+</html>

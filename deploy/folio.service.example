@@ -1,0 +1,18 @@
+[Unit]
+Description=Folio personal finance
+After=network.target
+
+[Service]
+Type=simple
+User=folio
+Group=folio
+WorkingDirectory=/opt/folio
+ExecStart=/usr/bin/node --env-file=/opt/folio/.env /opt/folio/scripts/serve.mjs
+Restart=on-failure
+RestartSec=3
+UMask=0077
+NoNewPrivileges=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

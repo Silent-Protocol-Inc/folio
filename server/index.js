@@ -9,6 +9,10 @@ import styles from '../public/style.css';
 import favicon from '../public/mark.svg';
 import artwork from '../public/folio-art.webp';
 import geist from '../public/geist.woff2';
+import touchIcon from '../public/apple-touch-icon.png';
+import icon192 from '../public/icon-192.png';
+import icon512 from '../public/icon-512.png';
+import manifest from '../public/manifest.webmanifest';
 
 const assets=new Map([
  ['/',[page,'text/html; charset=utf-8']],
@@ -18,7 +22,11 @@ const assets=new Map([
  ['/style.css',[styles,'text/css; charset=utf-8']],
  ['/mark.svg',[favicon,'image/svg+xml']],
  ['/folio-art.webp',[artwork,'image/webp']],
- ['/geist.woff2',[geist,'font/woff2']]
+ ['/geist.woff2',[geist,'font/woff2']],
+ ['/apple-touch-icon.png',[touchIcon,'image/png']],
+ ['/icon-192.png',[icon192,'image/png']],
+ ['/icon-512.png',[icon512,'image/png']],
+ ['/manifest.webmanifest',[manifest,'application/manifest+json']]
 ]);
 const sessionAge=12*60*60;
 const cookieName='__Host-folio_session';
@@ -26,7 +34,7 @@ const workspaceLimit=1024*1024;
 const sessionCookie=(value,maxAge=sessionAge)=>cookieName+'='+value+'; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age='+maxAge;
 const now=()=>Math.floor(Date.now()/1000);
 const securityHeaders={
- 'Content-Security-Policy':"default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://api.frankfurter.dev; base-uri 'none'; form-action 'self'; frame-ancestors 'self'; object-src 'none'",
+ 'Content-Security-Policy':"default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; manifest-src 'self'; connect-src 'self' https://api.frankfurter.dev; base-uri 'none'; form-action 'self'; frame-ancestors 'self'; object-src 'none'",
  'Cache-Control':'no-store',
  'Referrer-Policy':'no-referrer',
  'X-Content-Type-Options':'nosniff',

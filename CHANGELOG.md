@@ -4,7 +4,8 @@
 
 ## 1.2.1 (2026-11-20)
 
-- iPhone home-screen app: the status bar is now solid, so the app starts below the notch and nothing scrolls behind the clock. Remove Folio from the home screen and add it again to pick up the change.
+- iPhone home-screen app: the status bar is now solid and the header sits 12 px lower, so the logo and buttons stay clear of the notch and nothing scrolls behind the clock. Remove Folio from the home screen and add it again to pick up the change.
+- Transactions page: removed the second "Add transaction" button; the one in the top bar stays on every page.
 
 ## 1.2.0 (2026-11-20)
 

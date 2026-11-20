@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 1.2.1 (2026-11-20)
+
+- iPhone home-screen app: the status bar is now solid, so the app starts below the notch and nothing scrolls behind the clock. Remove Folio from the home screen and add it again to pick up the change.
+
 ## 1.2.0 (2026-11-20)
 
 - Opening balances: set the money already on hand from the overview or Settings without recording it as income.

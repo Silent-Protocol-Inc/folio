@@ -24,6 +24,8 @@ const assets=new Map([
  ['/folio-art.webp',[artwork,'image/webp']],
  ['/geist.woff2',[geist,'font/woff2']],
  ['/apple-touch-icon.png',[touchIcon,'image/png']],
+ ['/apple-touch-icon-precomposed.png',[touchIcon,'image/png']],
+ ['/favicon.ico',[icon192,'image/png']],
  ['/icon-192.png',[icon192,'image/png']],
  ['/icon-512.png',[icon512,'image/png']],
  ['/manifest.webmanifest',[manifest,'application/manifest+json']]
@@ -275,7 +277,9 @@ export default {
    if(path.startsWith('/api/'))return await api(request,env,path);
    const asset=assets.get(path);
    if(!asset||!['GET','HEAD'].includes(request.method))return fault('Page not found.',404);
-   return new Response(request.method==='HEAD'?null:asset[0],{headers:{...securityHeaders,'Content-Type':asset[1]}});
+   // Icons and the manifest are cacheable: iOS falls back to a letter tile when the touch icon is no-store.
+   const cache=/^(image\/png|application\/manifest\+json)$/.test(asset[1])?{'Cache-Control':'public, max-age=86400'}:{};
+   return new Response(request.method==='HEAD'?null:asset[0],{headers:{...securityHeaders,'Content-Type':asset[1],...cache}});
   }catch(error){
    if(error instanceof RequestError)return fault(error.message,error.status);
    console.error('Folio request error',error?.name??'Error');

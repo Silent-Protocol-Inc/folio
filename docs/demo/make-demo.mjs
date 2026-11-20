@@ -11,6 +11,7 @@ const day = (m, d) => `${m}-${String(d).padStart(2, "0")}`;
 const tx = (date, type, title, amount, category, account = "BCA payroll") => ({ ...base, id: id("tx"), date, type, title, amount, category, account });
 
 const transactions = [];
+transactions.push({ ...base, id: "tx-opening-balance", date: "2026-06-01", type: "income", title: "Opening balance", amount: 6_000_000, category: "Balance adjustment", account: "Cash balance", balanceAdjustment: true, note: "Starting cash on hand" });
 months.forEach((m, i) => {
   const last = m === "2026-11"; // the current month is still running
   transactions.push(tx(day(m, 1), "income", "Monthly salary", 18_500_000, "Salary"));

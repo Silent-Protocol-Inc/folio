@@ -23,7 +23,7 @@
 
 ## Features
 
-- **Transactions and cash flow:** income and expenses per account and category, a six-month chart and a monthly spending breakdown.
+- **Transactions and cash flow:** set an opening balance, record auditable balance corrections, and track income and expenses per account and category with six-month and monthly reporting.
 - **Budgets:** monthly limits per category, with what is left at a glance.
 - **Debts:** money you owe and money owed to you, with payments, due dates and reminders.
 - **Subscriptions:** weekly, monthly and yearly renewals, paused or active, with upcoming payments.

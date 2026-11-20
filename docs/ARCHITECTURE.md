@@ -30,6 +30,7 @@ Browser (public/*.js)                       Node.js 24 (scripts/serve.mjs)      
 | `public/index.html` | The single page: sign-in screens plus the app shell. |
 | `public/auth.js` | Session check, sign-in with password or passkey, forced password change, passkey management; loads `investments.js` and `app.js` after sign-in. Exposes `window.Folio.api()` for JSON calls. |
 | `public/app.js` | The workspace UI: hash routes (`#overview`, `#transactions`, `#budgets`, `#debts`, `#subscriptions`, `#goals`, `#currency`, `#investments`), forms and dialogs, charts, reminders, export and import, and `save()`. |
+| `public/balance.js` | Pure tracked-cash and correction-delta calculations shared by the browser UI and focused tests. |
 | `public/investments.js` | Holdings, buy/sell/income activity, cost basis, realized and unrealized gains, allocation. |
 | `public/style.css` | All styles; dark theme, mobile layout under 780 px, iPhone safe-area padding. |
 | `drizzle/` | SQL migrations, applied on start. Append new files; never edit an applied one. |
@@ -51,7 +52,7 @@ Each account row holds the whole workspace as one JSON document plus a `revision
 ```jsonc
 {
   "version": 1, "demo": false, "currency": "IDR", "reportRate": 1, "reportDate": "",
-  "transactions":  [{ "id", "date", "type": "income|expense", "title", "amount", "currency", "rate", "account", "category", "note" }],
+  "transactions":  [{ "id", "date", "type": "income|expense", "title", "amount", "currency", "rate", "account", "category", "note", "balanceAdjustment?": true }],
   "budgets":       [{ "id", "title", "category", "amount", "currency", "rate" }],
   "debts":         [{ "id", "title", "source", "direction": "owe|owed", "amount", "due", "lead", "payments": [{ "date", "amount" }] }],
   "subscriptions": [{ "id", "title", "amount", "cycle": "weekly|monthly|yearly", "due", "status": "active|paused", "lead" }],
@@ -60,7 +61,7 @@ Each account row holds the whole workspace as one JSON document plus a `revision
 }
 ```
 
-`rate` converts an entry's own currency to the workspace currency. `docs/demo/demo-workspace.json` is a complete example.
+`rate` converts an entry's own currency to the workspace currency. A transaction with `balanceAdjustment: true` is a dated opening-balance or correction record: it changes tracked cash but is excluded from operational income, expense, budget, spending and cash-flow reporting. The field is optional, so existing version-1 workspaces remain valid without a migration. `docs/demo/demo-workspace.json` is a complete example.
 
 **Saving.** The browser sends `{ workspace, revision }`. The server stores it only if `revision` matches the stored value, then increments it (`UPDATE … WHERE revision = ?`). A stale tab gets `409` and must reload, so two windows can't silently overwrite each other. The JSON is capped at 1 MB and checked by `admissibleWorkspace()`; the browser runs a stricter `validBackup()` on imports.
 

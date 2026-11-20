@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 1.2.0 (2026-11-20)
+
+- Opening balances: set the money already on hand from the overview or Settings without recording it as income.
+- Auditable balance corrections: enter the actual balance and effective date; Folio records only the difference in Transactions, where it can be reviewed, edited or deleted.
+- Reporting stays accurate: balance corrections affect tracked cash but are excluded from income, expenses, budgets, spending breakdowns and cash-flow charts.
+- Backward-compatible workspace data: existing version-1 workspaces and backups need no migration; JSON export/import preserves the optional adjustment marker.
 - Documentation for contributors: `docs/ARCHITECTURE.md` (source map, request flow, data model, security model), `docs/API.md` (every endpoint), Code of Conduct (Contributor Covenant 2.1), `SUPPORT.md`, `CODEOWNERS`, a fuller `CONTRIBUTING.md`, and a header comment on every source file.
 
 ## 1.1.0 (2026-11-20)

@@ -8,6 +8,19 @@
   {
    "currency": "IDR",
    "rate": 1,
+   "note": "Starting cash on hand",
+   "id": "tx-opening-balance",
+   "date": "2026-06-01",
+   "type": "income",
+   "title": "Opening balance",
+   "amount": 6000000,
+   "category": "Balance adjustment",
+   "account": "Cash balance",
+   "balanceAdjustment": true
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
    "note": "",
    "id": "tx-0001",
    "date": "2026-06-01",

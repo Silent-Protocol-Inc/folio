@@ -88,3 +88,4 @@ dialog{border:1px solid #434052;border-radius:19px;background:#1d1e2b;color:var(
 .auth-art{padding-top:max(clamp(28px,5vw,100px),calc(20px + env(safe-area-inset-top)))}
 @media(max-width:780px){.topbar{height:calc(59px + env(safe-area-inset-top));padding-top:env(safe-area-inset-top)}}
 @media(max-width:760px){.auth-art{padding-top:calc(20px + env(safe-area-inset-top))}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;scroll-behavior:auto!important;transition:none!important}}

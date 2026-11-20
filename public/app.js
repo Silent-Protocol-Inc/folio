@@ -76,7 +76,9 @@ const currentMonth = () => today().slice(0,7);
 let month = currentMonth();
 const dateSort = (a,b) => b.date.localeCompare(a.date);
 const inMonth = value => state.transactions.filter(item=>item.date.startsWith(value));
-const totals = list => ({income:sum(list.filter(x=>x.type==='income'),base),expense:sum(list.filter(x=>x.type==='expense'),base)});
+const operational = list => list.filter(item=>!item.balanceAdjustment);
+const totals = list => ({income:sum(operational(list).filter(x=>x.type==='income'),base),expense:sum(operational(list).filter(x=>x.type==='expense'),base)});
+const cashBalanceThrough = date => window.Folio.balance.cashBalanceThrough(state.transactions,date);
 
 function blank() {
  return {version:1,demo:false,currency:'IDR',reportRate:1,reportDate:'',transactions:[],debts:[],subscriptions:[],goals:[],budgets:[],investments:[]};
@@ -132,7 +134,7 @@ const monthControl=()=>'<div class="periods">'+iconButton('previous-month','Prev
 const progress=(percent,label)=>'<div class="progress '+(percent>100?'over':'')+'" role="progressbar" aria-label="'+safe(label)+'" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+Math.round(Math.min(100,Math.max(0,percent)))+'"><span style="width:'+Math.min(100,Math.max(0,percent))+'%"></span></div>';
 const navLink=([id,name,symbol],mobile=false)=>'<a class="side-link" href="#'+id+'"'+(route()===id?' aria-current="page"':'')+'>'+icon(symbol)+(mobile&&id==='goals'?'Goals':name)+'</a>';
 const txIcons={'Food & drink':['coffee','orange'],Shopping:['bag','pink'],Transport:['car','blue'],Housing:['home','blue'],Subscriptions:['subscription','blue'],'Debt payment':['debt','orange']};
-const txIcon=item=>blockIcon(...(txIcons[item.category]||(item.type==='income'?['up','green']:['down','pink'])));
+const txIcon=item=>blockIcon(...(item.balanceAdjustment?['wallet','blue']:txIcons[item.category]||(item.type==='income'?['up','green']:['down','pink'])));
 const txText=item=>'<b class="'+(item.type==='income'?'positive':'')+'">'+safe(signed(item))+'</b>';
 const dot=color=>'<i class="dot" style="--dot:'+color+'"></i>';
 
@@ -179,7 +181,7 @@ function cashChart() {
 }
 function spendingChart(list,total) {
  const grouped=new Map();
- list.filter(item=>item.type==='expense').forEach(item=>grouped.set(item.category,(grouped.get(item.category)||0)+base(item)));
+ operational(list).filter(item=>item.type==='expense').forEach(item=>grouped.set(item.category,(grouped.get(item.category)||0)+base(item)));
  const sorted=[...grouped].filter(([,value])=>value>0).sort((a,b)=>b[1]-a[1]);
  const lead=sorted.slice(0,5);
  if(sorted.length>5)lead.push(['Other categories',sum(sorted.slice(5),entry=>entry[1])]);
@@ -191,14 +193,14 @@ function spendingChart(list,total) {
 function overview() {
  const list=inMonth(month);
  const selected=totals(list);
- const all=totals(state.transactions.filter(item=>item.date.slice(0,7)<=month));
+ const balance=cashBalanceThrough(month+'-31');
  const net=selected.income-selected.expense;
  const debt=sum(state.debts.filter(item=>item.direction==='owe'),item=>base({...item,amount:outstanding(item)}));
  const saved=sum(state.goals,item=>base({...item,amount:savings(item)}));
  const metrics=[['Income',selected.income,'up','green'],['Expenses',selected.expense,'down','pink'],['Debt to pay',debt,'debt','orange'],['Goal savings',saved,'goal','blue']];
  return title('Overview','A clear view of where your money stands.',monthControl())+
  '<section class="hero" aria-label="Tracked cash balance"><div class="hero-art" aria-hidden="true"></div><span class="hero-corner">'+safe(state.currency)+'</span>'+
- '<div class="hero-copy"><div class="hero-label">'+icon('wallet')+'Tracked cash balance</div><div class="hero-value">'+safe(report(all.income-all.expense))+'</div><div class="hero-foot">'+chip((net>=0?'+':'')+report(net))+'<span>Cash flow in '+safe(monthLabel(month,true))+'</span></div></div></section>'+
+ '<div class="hero-copy"><div class="hero-label">'+icon('wallet')+'Tracked cash balance</div><div class="hero-value">'+safe(report(balance))+'</div><div class="hero-foot">'+chip((net>=0?'+':'')+report(net))+'<span>Cash flow in '+safe(monthLabel(month,true))+'</span>'+button('balance-adjustment',state.transactions.length?'Adjust balance':'Set opening balance','','text-button')+'</div></div></section>'+
  '<div class="metrics">'+metrics.map(([label,value,symbol,tone])=>'<div class="metric">'+blockIcon(symbol,tone)+'<div><small>'+label+'</small><b>'+safe(report(value))+'</b></div></div>').join('')+'</div>'+
  '<div class="split">'+cashChart()+spendingChart(list,selected.expense)+'</div><div class="split">'+
  section('Recent transactions','For '+monthLabel(month),list.sort(dateSort).slice(0,5).map(recentRow).join('')||empty('No transactions this month.'),link('transactions','View all'))+
@@ -215,7 +217,7 @@ function filteredTransactions() {
  return state.transactions.filter(item=>(filter.period==='all'||item.date.startsWith(month))&&(filter.type==='all'||item.type===filter.type)&&(!query||[item.title,item.category,item.account,item.note,item.currency].some(text=>(text||'').toLowerCase().includes(query)))).sort(dateSort);
 }
 function transactionRows() {
- return filteredTransactions().map(item=>'<div class="list-item transaction-row"><div class="tx-name">'+txIcon(item)+'<div class="row-main"><strong>'+safe(item.title)+'</strong><small>'+safe(item.account||item.category)+'</small></div></div><span class="cell">'+safe(item.category)+'</span><span class="cell">'+safe(displayDate(item.date))+'</span><div class="amount">'+txText(item)+'<small>'+safe(item.currency===state.currency?displayDate(item.date):'≈ '+report(base(item)))+'</small></div>'+iconButton('transaction','Edit '+item.title,'edit',attr(item))+'</div>').join('')||empty('No transactions match your filters.');
+ return filteredTransactions().map(item=>'<div class="list-item transaction-row"><div class="tx-name">'+txIcon(item)+'<div class="row-main"><strong>'+safe(item.title)+'</strong><small>'+safe(item.balanceAdjustment?'Balance correction'+(item.note?' · '+item.note:''):item.account||item.category)+'</small></div></div><span class="cell">'+safe(item.category)+'</span><span class="cell">'+safe(displayDate(item.date))+'</span><div class="amount">'+txText(item)+'<small>'+safe(item.currency===state.currency?displayDate(item.date):'≈ '+report(base(item)))+'</small></div>'+iconButton('transaction','Edit '+item.title,'edit',attr(item))+'</div>').join('')||empty('No transactions match your filters.');
 }
 function transactions() {
  return title('Transactions','Add and review money coming in and going out.',button('transaction','Add transaction','plus','btn primary'))+
@@ -358,6 +360,35 @@ function feedback(message) {
 function confirmAction(title,description,label,submit) {
  formModal(title,'<p class="form-note wide">'+safe(description)+'</p>',label,submit);
 }
+function balanceAdjustment() {
+ const label=state.transactions.length?'Adjust balance':'Set opening balance';
+ const fields='<p class="form-note wide">Enter the money you actually have. Folio records the difference in Transactions without counting it as income or spending.</p>'+
+  field('Actual balance in '+state.currency,'actual','','number','min="-100000000000000" max="100000000000000" step="0.01" inputmode="decimal" required autofocus')+
+  dateField('Effective date','date',today(),true,today())+'<label class="wide">Reason<textarea name="note" maxlength="2000" placeholder="Optional, for example bank correction"></textarea></label>'+
+  '<p id="balance-preview" class="form-note wide" aria-live="polite"></p>';
+ formModal(label,fields,label,event=>{
+  const values=readForm(event.target), actual=Number(values.actual);
+  const delta=window.Folio.balance.balanceDelta(state.transactions,values.date,actual,state.reportRate);
+  if(!Number.isFinite(actual)||Math.abs(actual)>100000000000000)return feedback('Enter a valid actual balance.');
+  if(!values.date)return feedback('Choose an effective date.');
+  if(round(Math.abs(delta)*state.reportRate)===0)return feedback('The tracked balance already matches that amount.');
+  if(!(Math.abs(delta)<=100000000000000&&Number.isFinite(delta*state.reportRate)))return feedback('The required correction is too large.');
+  const opening=state.transactions.length===0;
+  update(next=>next.transactions.push({
+   id:uid(),title:opening?'Opening balance':'Balance adjustment',amount:Math.abs(delta),currency:state.currency,
+   rate:state.reportRate,rateDate:state.reportDate||'',date:values.date,type:delta>0?'income':'expense',
+   category:'Balance adjustment',account:'Cash balance',note:(values.note||'').trim(),balanceAdjustment:true
+  }),opening?'Opening balance recorded.':'Balance adjusted.');
+ });
+ const form=$('#modal-form',modal), preview=$('#balance-preview',form);
+ const draw=()=>{
+  const values=readForm(form), actual=Number(values.actual), tracked=cashBalanceThrough(values.date||today())/state.reportRate;
+  if(values.actual===''||!Number.isFinite(actual)){preview.textContent='Current tracked balance: '+report(tracked*state.reportRate)+'.';return;}
+  const delta=window.Folio.balance.balanceDelta(state.transactions,values.date||today(),actual,state.reportRate);
+  preview.textContent=delta===0?'The tracked balance already matches.':'Folio will record '+(delta>0?'an increase of ':'a decrease of ')+money(Math.abs(delta),state.currency)+'.';
+ };
+ form.addEventListener('input',draw);draw();
+}
 function history(items,label,currency) {
  return items?.length?'<section class="wide"><p class="form-note">'+safe(label)+'</p><div class="history">'+items.slice().reverse().map(entry=>'<p><span>'+safe(displayDate(entry.date))+'</span><b>'+safe(money(entry.amount,currency))+'</b></p>').join('')+'</div></section>':'';
 }
@@ -378,8 +409,9 @@ function recordForm(kind,id) {
  let fields;
  if(kind==='transaction'){
   const type=item.type||'expense';
-  fields=nameField+select('Type','type',[['expense','Expense'],['income','Income']],type,linked?'disabled':'')+
-   select('Category','category',type==='income'?incomeCategories:expenseCategories,item.category,linked?'disabled':'')+moneyFields+
+  const adjustment=item.balanceAdjustment;
+  fields=nameField+select(adjustment?'Correction direction':'Type','type',[['expense',adjustment?'Decrease':'Expense'],['income',adjustment?'Increase':'Income']],type,linked?'disabled':'')+
+   (adjustment?'<input type="hidden" name="category" value="Balance adjustment"><p class="form-note">Recorded as a balance correction, not income or spending.</p>':select('Category','category',type==='income'?incomeCategories:expenseCategories,item.category,linked?'disabled':''))+moneyFields+
    dateField('Date','date',item.date||today(),true,today())+account+notesField(item.note);
   if(linked)fields+='<p class="form-note wide">'+safe(linked.kind==='debt'?'Amount changes also update the debt balance.':'This renewal is linked to the subscription tracker.')+'</p>';
  }
@@ -419,7 +451,7 @@ function recordForm(kind,id) {
   },existing?'Changes saved.':kind[0].toUpperCase()+kind.slice(1)+' added.');
  },remove);
  const form=$('#modal-form',modal);
- if(kind==='transaction'&&!linked)form.elements.type.addEventListener('change',()=>{
+ if(kind==='transaction'&&!linked&&!item.balanceAdjustment)form.elements.type.addEventListener('change',()=>{
   form.elements.category.innerHTML=optionList(form.elements.type.value==='income'?incomeCategories:expenseCategories,'');
  });
  if(!linked){
@@ -545,6 +577,7 @@ function settings() {
  openModal('Settings','<section class="settings-block"><h3>Reporting currency</h3><p class="form-note">Dashboard totals use this currency. Each record keeps its original amount and exchange rate.</p><form id="settings-currency" class="form-grid">'+
  select('Currency','currency',currencies,state.currency)+field('IDR per 1 unit (optional)','manual',state.currency==='IDR'?'':state.reportRate,'number',digits)+
  '<p class="wide form-note">Leave the rate blank to use the latest Frankfurter reference rate.</p><button type="submit" class="btn primary wide">Save reporting currency</button><p class="error wide" hidden role="alert"></p></form></section>'+
+ '<section class="settings-block"><h3>Cash balance</h3><p class="form-note">Folio currently tracks '+safe(report(cashBalanceThrough(today())))+'. Corrections appear in Transactions.</p>'+button('balance-adjustment',state.transactions.length?'Adjust balance':'Set opening balance','wallet')+'</section>'+
  '<section class="settings-block"><h3>Data and backups</h3><p class="form-note">Your records are saved to this Folio account. Export a backup any time.</p><div class="cluster">'+button('backup','Export backup','download')+button('restore','Import backup')+(legacyWorkspace()?button('legacy-import','Import old browser records'):'')+'</div></section>'+
  '<section class="settings-block"><h3>Account</h3><p class="form-note">Manage your password, passkeys, and sign-in session.</p>'+button('security','Security','settings')+'</section>');
  const form=$('#settings-currency',modal);
@@ -571,7 +604,7 @@ const validRow=item=>item&&validText(item.id)&&item.id.length>0&&validText(item.
 function validBackup(db) {
  if(!db||db.version!==1||db.demo!==false||!currencies.includes(db.currency)||!validAmount(db.reportRate)||(db.reportDate&&!validDate(db.reportDate)))return false;
  if(!Object.values(collections).every(group=>Array.isArray(db[group])&&db[group].length<=20000&&db[group].every(validRow)&&new Set(db[group].map(row=>row.id)).size===db[group].length))return false;
- return db.transactions.every(x=>validDate(x.date)&&['income','expense'].includes(x.type)&&allCategories.includes(x.category)&&validText(x.account)&&
+ return db.transactions.every(x=>validDate(x.date)&&['income','expense'].includes(x.type)&&(x.balanceAdjustment===true?x.category==='Balance adjustment':x.balanceAdjustment===undefined&&allCategories.includes(x.category))&&validText(x.account)&&
    (!x.link||(['debt','subscription'].includes(x.link.kind)&&validText(x.link.id)&&(!x.link.renewalFrom||validDate(x.link.renewalFrom))&&(!x.link.renewalTo||validDate(x.link.renewalTo)))))&&
   db.debts.every(x=>['owe','owed'].includes(x.direction)&&sources.includes(x.source)&&(!x.due||validDate(x.due))&&validLead(x.lead)&&
    Array.isArray(x.payments)&&x.payments.every(entry=>validAmount(entry?.amount)&&validDate(entry.date)&&(!entry.txId||validText(entry.txId)))&&round(sum(x.payments,entry=>entry.amount))<=x.amount)&&
@@ -669,6 +702,7 @@ document.addEventListener('click',event=>{
   case 'period':monthDialog();break;
   case 'reminders':remindersModal();break;
   case 'settings':settings();break;
+  case 'balance-adjustment':balanceAdjustment();break;
   case 'more':openModal('More','<nav aria-label="More pages"><div class="nav-group">'+[pageMap.get('investments'),pages[2],pages[4],pages[6]].map(item=>navLink(item)).join('')+'</div>'+button('settings','Settings','settings','side-link')+'</nav>');break;
   case 'close':modal.close();break;
   case 'delete':removeRecord(kind,id);break;

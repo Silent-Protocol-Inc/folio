@@ -4,6 +4,7 @@
  * Bundled with @simplewebauthn/browser by scripts/build.mjs.
  */
 import {startAuthentication,startRegistration,browserSupportsWebAuthn} from '@simplewebauthn/browser';
+import * as balance from './balance.js';
 
 const byId=id=>document.getElementById(id);
 const login=byId('login-form');
@@ -57,7 +58,7 @@ async function enter(session){
  if(!user){show('login');return;}
  if(user.mustChange){show('change');return;}
  const saved=await api('workspace');
- window.Folio={...saved,user,api,openSecurity};
+ window.Folio={...saved,user,api,openSecurity,balance};
  await loadScript('/investments.js');
  await loadScript('/app.js');
  const name=shortenEmail(user.email);

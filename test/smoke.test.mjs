@@ -6,6 +6,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { admissibleWorkspace } from '../server/workspace-schema.js';
 
 const port = 4700 + Math.floor(Math.random() * 200);
 const origin = `http://localhost:${port}`;
@@ -80,6 +81,9 @@ test('account: sign in, forced password change, workspace round trip', async () 
 
   const before = await (await call('/api/workspace')).json();
   const demo = JSON.parse(readFileSync(new URL('../docs/demo/demo-workspace.json', import.meta.url), 'utf8'));
+  const legacy = structuredClone(demo);
+  legacy.transactions = legacy.transactions.filter((row) => !row.balanceAdjustment);
+  assert.equal(admissibleWorkspace(legacy), true, 'version-1 workspaces without adjustment markers remain valid');
   const saved = await call('/api/workspace', { method: 'PUT', body: { revision: before.revision, workspace: demo } });
   assert.equal(saved.status, 200);
   const { revision } = await saved.json();
@@ -91,7 +95,11 @@ test('account: sign in, forced password change, workspace round trip', async () 
   const back = await (await call('/api/workspace')).json();
   assert.equal(back.workspace.transactions.length, demo.transactions.length);
   assert.equal(back.workspace.investments.length, demo.investments.length);
+  assert.equal(back.workspace.transactions.find((row) => row.balanceAdjustment)?.category, 'Balance adjustment');
 
   const broken = await call('/api/workspace', { method: 'PUT', body: { revision, workspace: { ...demo, version: 2 } } });
   assert.equal(broken.status, 400, 'an invalid workspace is rejected');
+  const falseMarker = structuredClone(demo);
+  falseMarker.transactions[0].balanceAdjustment = false;
+  assert.equal((await call('/api/workspace', { method: 'PUT', body: { revision, workspace: falseMarker } })).status, 400, 'a false adjustment marker is rejected');
 });

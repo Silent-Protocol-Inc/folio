@@ -20,7 +20,8 @@ const holding=row=>id(row.id)&&text(row.name)&&text(row.symbol)&&text(row.kind)&
  (row.mark===null||(row.mark&&nonnegative(row.mark.price)&&positive(row.mark.rate)&&dated(row.mark.date)));
 export function admissibleWorkspace(state){
  return state?.version===1&&state.demo===false&&coded(state.currency)&&positive(state.reportRate)&&(!state.reportDate||dated(state.reportDate))&&
-  list(state.transactions,row=>general(row)&&dated(row.date)&&['income','expense'].includes(row.type)&&text(row.account)&&text(row.category))&&
+  list(state.transactions,row=>general(row)&&dated(row.date)&&['income','expense'].includes(row.type)&&text(row.account)&&text(row.category)&&
+   (row.balanceAdjustment===undefined||(row.balanceAdjustment===true&&row.category==='Balance adjustment')))&&
   list(state.debts,row=>general(row)&&text(row.source)&&['owe','owed'].includes(row.direction)&&(!row.due||dated(row.due))&&Number.isInteger(row.lead)&&list(row.payments,moneyPoint))&&
   list(state.subscriptions,row=>general(row)&&dated(row.due)&&['monthly','weekly','yearly'].includes(row.cycle)&&['active','paused'].includes(row.status)&&Number.isInteger(row.lead))&&
   list(state.goals,row=>general(row)&&(!row.due||dated(row.due))&&list(row.contributions,moneyPoint))&&

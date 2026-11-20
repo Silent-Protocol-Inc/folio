@@ -36,8 +36,11 @@ const server = createServer(async (req, res) => {
   const responseHeaders = Object.fromEntries(response.headers);
   const cookies = response.headers.getSetCookie();
   if (cookies.length) responseHeaders['set-cookie'] = cookies;
+  const body = Buffer.from(await response.arrayBuffer());
+  // A known length (not chunked): iOS's home-screen icon fetch is picky.
+  if (method !== 'HEAD') responseHeaders['content-length'] = String(body.length);
   res.writeHead(response.status, responseHeaders);
-  res.end(Buffer.from(await response.arrayBuffer()));
+  res.end(body);
  } catch (error) {
   console.error('Folio HTTP request failed:', error.name);
   if (!res.headersSent) res.writeHead(500);

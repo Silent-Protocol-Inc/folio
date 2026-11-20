@@ -1,0 +1,18 @@
+# Folio in Docker (Linux): listens on 127.0.0.1:${PORT} (host network, loopback only); a reverse proxy terminates HTTPS.
+# Data lives in FOLIO_DATA_DIR (default ./data, kept out of git).
+services:
+  folio:
+    build: .
+    image: folio:local
+    container_name: folio
+    network_mode: host
+    env_file: .env
+    environment:
+      FOLIO_DB_PATH: /data/folio.sqlite
+    volumes:
+      - ${FOLIO_DATA_DIR:-./data}:/data
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    restart: unless-stopped

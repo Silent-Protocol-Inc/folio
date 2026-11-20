@@ -30,6 +30,24 @@ The account command prints a randomly generated temporary password once. Use it 
 
 `npm start` listens on `127.0.0.1` only. For a local test on the same machine, set `FOLIO_ORIGIN=http://localhost:4173` and visit that origin. Use HTTPS for a remote deployment. Set the final hostname before enrolling passkeys, since credentials are scoped to the hostname where they were created.
 
+## Run with Docker (Linux)
+
+Use this when the server's Node.js is older than 24. The container listens on `127.0.0.1` only (host network), so put a reverse proxy in front as described below.
+
+```sh
+cp .env.example .env
+chmod 600 .env
+# Set FOLIO_ORIGIN and PORT in .env. Optional: FOLIO_DATA_DIR (default ./data) for the database folder.
+docker compose up -d --build
+docker compose exec folio node scripts/account.mjs owner@example.com
+```
+
+The account command prints the temporary password once. The database lives in `FOLIO_DATA_DIR` on the host, outside the image, so rebuilding or upgrading keeps your data. To upgrade: back up, pull the new source, and run `docker compose up -d --build` again.
+
+## Add to the home screen
+
+Folio ships a web app manifest and an Apple touch icon. On iPhone, open your Folio address in Safari, then Share → Add to Home Screen; it opens full screen like an app. On Android, use the browser's Install app option.
+
 ## HTTPS reverse proxy
 
 `deploy/Caddyfile.example` is ready to adapt. Point your DNS record at the VPS, copy the site block into your Caddy configuration, replace the hostname, and reload Caddy. For a direct public deployment, allow inbound TCP 80 and 443 to Caddy. Folio's application port stays on loopback.
@@ -72,4 +90,9 @@ Export a JSON backup from **Settings → Export backup** in the current Folio ac
 
 - An app-level JSON backup covers one workspace. For a full instance backup, use SQLite's online backup command with the actual database path, such as `sqlite3 /var/lib/folio/folio.sqlite '.backup /secure/backups/folio.sqlite'`. Protect the resulting file because it includes financial records and authentication data. Keep a backup outside the VPS.
 - SQLite runs in WAL mode. Use the SQLite backup command for a live database. For an offline restore, stop the service, move the prior database and any `-wal` and `-shm` sidecars aside, install the backup at `FOLIO_DB_PATH` with the correct owner and permissions, and restart.
+- `deploy/backup.sh` makes a checked online backup and keeps the newest 30: `FOLIO_DB_PATH=/var/lib/folio/folio.sqlite BACKUP_DIR=/secure/backups deploy/backup.sh`. Run it daily from cron and copy the backups off the server.
 - Before an upgrade, back up the database. Keep `.env` and the database, run `npm ci && npm run build` in the new release, and restart. The server applies pending SQL migrations on startup. Check the service logs, then sign in and verify your workspace.
+
+## License
+
+Folio is licensed under the [Apache License 2.0](LICENSE). The bundled Geist typeface is licensed under the SIL Open Font License 1.1 ([licenses/Geist-OFL.txt](licenses/Geist-OFL.txt)). See [NOTICE](NOTICE).

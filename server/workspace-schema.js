@@ -1,3 +1,7 @@
+/*
+ * Server-side shape check for a workspace before it is stored (PUT /api/workspace). The browser runs a
+ * stricter check on imported backups (validBackup in public/app.js). Format: docs/ARCHITECTURE.md#data-model.
+ */
 const currency=/^[A-Z]{3}$/;
 const date=/^\d{4}-\d{2}-\d{2}$/;
 const text=value=>typeof value==='string'&&value.length<=2000;

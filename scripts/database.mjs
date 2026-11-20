@@ -1,3 +1,7 @@
+/*
+ * Opens the SQLite database (WAL, foreign keys) at FOLIO_DB_PATH and applies drizzle/*.sql in order inside
+ * one transaction, recording each file's checksum. Refuses to start if an applied migration was edited.
+ */
 import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, readdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';

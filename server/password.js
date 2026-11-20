@@ -1,3 +1,7 @@
+/*
+ * Password hashing (Argon2id, random salt, constant-time check), random tokens, base64url helpers and
+ * SHA-256 fingerprints. Stored hashes look like "<salt>.<digest>"; session tokens are stored as fingerprints only.
+ */
 import { argon2idAsync } from '@noble/hashes/argon2.js';
 
 const encode = new TextEncoder();

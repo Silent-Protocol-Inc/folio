@@ -1,3 +1,9 @@
+/*
+ * Folio request handler: export default { fetch(request, env) }, called by scripts/serve.mjs.
+ * Serves the bundled static assets and the JSON API under /api (sign-in, sessions, password change,
+ * passkeys, workspace load/save). Every response carries the security headers below.
+ * See docs/ARCHITECTURE.md (request flow, security model) and docs/API.md (endpoints).
+ */
 import {admissibleWorkspace} from './workspace-schema.js';
 import {generateRegistrationOptions,verifyRegistrationResponse,generateAuthenticationOptions,verifyAuthenticationResponse} from '@simplewebauthn/server';
 import {checkPassword,fingerprint,fromBase64,hashPassword,randomToken,toBase64} from './password.js';

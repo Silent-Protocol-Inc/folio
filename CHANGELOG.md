@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Documentation for contributors: `docs/ARCHITECTURE.md` (source map, request flow, data model, security model), `docs/API.md` (every endpoint), Code of Conduct (Contributor Covenant 2.1), `SUPPORT.md`, `CODEOWNERS`, a fuller `CONTRIBUTING.md`, and a header comment on every source file.
+
 ## 1.1.0 (2026-11-20)
 
 - One-command install: `curl -fsSL https://raw.githubusercontent.com/Silent-Protocol-Inc/folio/main/install.sh | bash` sets up Docker, starts Folio and creates the first account.

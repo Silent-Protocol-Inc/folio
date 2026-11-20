@@ -1,3 +1,7 @@
+/*
+ * Creates a Folio account: `node scripts/account.mjs you@example.com` (or npm run account:add).
+ * Prints a random temporary password once; the user must change it at first sign-in.
+ */
 import { fingerprint, hashPassword, randomToken } from '../server/password.js';
 import { openDatabase } from './database.mjs';
 

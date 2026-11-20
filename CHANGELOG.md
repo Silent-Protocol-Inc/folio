@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 1.2.1 (2026-11-20)
+
+- iPhone home-screen app: the status bar is now solid and the header sits 12 px lower, so the logo and buttons stay clear of the notch and nothing scrolls behind the clock. Remove Folio from the home screen and add it again to pick up the change.
+- Transactions page: removed the second "Add transaction" button; the one in the top bar stays on every page.
+
 ## 1.2.0 (2026-11-20)
 
 - Opening balances: set the money already on hand from the overview or Settings without recording it as income.

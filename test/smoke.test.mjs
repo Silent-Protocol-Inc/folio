@@ -42,6 +42,7 @@ test('serves the app with security headers', async () => {
   const html = await res.text();
   assert.match(html, /rel="apple-touch-icon"/);
   assert.match(html, /rel="manifest"/);
+  assert.match(html, /apple-mobile-web-app-status-bar-style" content="black"/, 'solid iOS status bar keeps the app below the notch');
 });
 
 test('home-screen icons and manifest are served and cacheable', async () => {

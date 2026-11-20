@@ -1,58 +1,66 @@
-# Folio on a VPS
+<div align="center">
 
-Folio is a personal finance tracker for transactions, budgets, debts, subscriptions, savings goals, and investments. This package contains the application source and a standalone Node.js server with persistent SQLite. It runs independently of ChatGPT Sites. It starts with an empty database and no default accounts.
+<img src="public/icon-192.png" width="96" height="96" alt="Folio logo">
 
-## Requirements
+# Folio
 
-- Linux VPS with Node.js **24 or newer** and npm.
-- A hostname for Folio, such as `folio.example.com`, with HTTPS terminated by a reverse proxy.
-- A dedicated OS user for the service and a writable directory for the database.
-- Internet access during the dependency install. The currency converter can contact Frankfurter from the browser at runtime.
+**A self-hosted personal finance workspace.** Track transactions, budgets, debts, subscriptions, savings goals and investments on your own server, and open it on your phone like an app.
 
-## First run
+[![Release](https://img.shields.io/github/v/release/Silent-Protocol-Inc/folio?color=8d72f1)](https://github.com/Silent-Protocol-Inc/folio/releases)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-8d72f1)](LICENSE)
+[![Docker image](https://img.shields.io/badge/docker-ghcr.io-2496ED?logo=docker&logoColor=white)](https://github.com/Silent-Protocol-Inc/folio/pkgs/container/folio)
+[![Node.js 24](https://img.shields.io/badge/node-24%2B-5FA04E?logo=nodedotjs&logoColor=white)](https://nodejs.org)
+[![SQLite](https://img.shields.io/badge/database-SQLite-003B57?logo=sqlite&logoColor=white)](https://sqlite.org)
 
-Extract the archive and run the commands below from `folio-vps/` as the account that will run Folio.
+[Quick start](#quick-start) · [Features](#features) · [Screenshots](#screenshots) · [Configuration](#configuration) · [Security](SECURITY.md)
+
+<img src="docs/screenshots/overview.webp" alt="Folio overview: cash balance, income, expenses, debt, goal savings, six-month cash flow and spending breakdown" width="100%">
+
+<sub>Screenshots use the fictional sample workspace in <code>docs/demo/</code>.</sub>
+
+</div>
+
+## Features
+
+- **Transactions and cash flow:** income and expenses per account and category, a six-month chart and a monthly spending breakdown.
+- **Budgets:** monthly limits per category, with what is left at a glance.
+- **Debts:** money you owe and money owed to you, with payments, due dates and reminders.
+- **Subscriptions:** weekly, monthly and yearly renewals, paused or active, with upcoming payments.
+- **Savings goals:** targets, deadlines, deposits and withdrawals.
+- **Investments:** stocks, funds, bonds, gold, crypto and more, with cost basis, market value, realized and unrealized gain, and payouts.
+- **Multi-currency:** 29 currencies and a converter with dated reference rates or your own rate.
+- **Private by design:** one workspace per account, password and passkey sign-in, no third-party analytics. Your data stays in one SQLite file on your server.
+- **Works on your phone:** add it to the home screen on iPhone or Android and it opens full screen.
+- **Backups:** JSON export and import per account, plus a script for checked daily database backups.
+
+## Quick start
+
+You need a Linux, macOS or Windows machine with [Docker](https://docs.docker.com/get-docker/). One command installs and starts Folio and creates your first account:
 
 ```sh
-cp .env.example .env
-chmod 600 .env
-
-# Edit .env before continuing, then run:
-npm ci
-npm run build
-npm run account:add -- owner@example.com
-npm start
+curl -fsSL https://raw.githubusercontent.com/Silent-Protocol-Inc/folio/main/install.sh | bash
 ```
 
-Set `FOLIO_ORIGIN` in `.env` to your exact public HTTPS origin, for example `https://folio.example.com`, without a trailing slash or path. Change `PORT` if port 4173 is already in use, and use the same port in the proxy. Use an absolute `FOLIO_DB_PATH` to keep the database outside the release directory if you plan to replace that directory during upgrades.
+The installer asks for the install folder, the port, the address you will open Folio at, and your email. To try it on your own computer, accept the defaults and open <http://localhost:4173>. It prints a temporary password once; sign in with it and choose your own.
 
-The account command prints a randomly generated temporary password once. Use it to sign in and choose a new password of at least eight characters. Run the account command again to add another user. Each user gets an empty workspace.
+Want to see Folio with data before entering your own? Sign in, open **Settings → Import backup** and pick [`docs/demo/demo-workspace.json`](docs/demo/demo-workspace.json).
 
-`npm start` listens on `127.0.0.1` only. For a local test on the same machine, set `FOLIO_ORIGIN=http://localhost:4173` and visit that origin. Use HTTPS for a remote deployment. Set the final hostname before enrolling passkeys, since credentials are scoped to the hostname where they were created.
+<details>
+<summary><b>Run on a server (HTTPS)</b></summary>
 
-## Run with Docker (Linux)
+Folio only listens on `127.0.0.1`, so a reverse proxy serves it over HTTPS. Run the installer with your public address, for example `https://folio.example.com`, then point your proxy at the port you chose.
 
-Use this when the server's Node.js is older than 24. The container listens on `127.0.0.1` only (host network), so put a reverse proxy in front as described below.
+**Caddy** (gets the certificate for you):
 
-```sh
-cp .env.example .env
-chmod 600 .env
-# Set FOLIO_ORIGIN and PORT in .env. Optional: FOLIO_DATA_DIR (default ./data) for the database folder.
-docker compose up -d --build
-docker compose exec folio node scripts/account.mjs owner@example.com
+```caddy
+folio.example.com {
+  reverse_proxy 127.0.0.1:4173 {
+    header_up X-Folio-Client-IP {remote_host}
+  }
+}
 ```
 
-The account command prints the temporary password once. The database lives in `FOLIO_DATA_DIR` on the host, outside the image, so rebuilding or upgrading keeps your data. To upgrade: back up, pull the new source, and run `docker compose up -d --build` again.
-
-## Add to the home screen
-
-Folio ships a web app manifest and an Apple touch icon. On iPhone, open your Folio address in Safari, then Share → Add to Home Screen; it opens full screen like an app. On Android, use the browser's Install app option.
-
-## HTTPS reverse proxy
-
-`deploy/Caddyfile.example` is ready to adapt. Point your DNS record at the VPS, copy the site block into your Caddy configuration, replace the hostname, and reload Caddy. For a direct public deployment, allow inbound TCP 80 and 443 to Caddy. Folio's application port stays on loopback.
-
-If you already use Nginx, add these directives inside the HTTPS virtual host for Folio:
+**Nginx**, inside the HTTPS server block:
 
 ```nginx
 location / {
@@ -62,36 +70,112 @@ location / {
 }
 ```
 
-The proxy must overwrite `X-Folio-Client-IP` with the peer address it trusts. If another proxy sits in front, configure your reverse proxy's trusted-proxy settings before forwarding a real client IP. Leave the browser's `Origin` header intact. The Node server uses it to validate write requests.
+The proxy must set `X-Folio-Client-IP` to the visitor address it trusts (Folio uses it for sign-in rate limits) and leave the `Origin` header untouched. Choose the final hostname before enrolling passkeys: passkeys only work on the hostname where they were created.
 
-## Run as a service
+</details>
 
-The example unit assumes `/opt/folio`, a dedicated `folio` user/group, and Node at `/usr/bin/node`.
-
-1. Put the project in `/opt/folio`. Give the service user permission to read the project and `.env` and write the database directory.
-2. Run the first-run build and account commands with the same service user and `.env` the service will use.
-3. Edit paths in `deploy/folio.service.example` to match your server. If you installed Node elsewhere, use its full executable path in `ExecStart`.
-4. Install and start the unit.
+<details>
+<summary><b>Install with Docker Compose by hand</b></summary>
 
 ```sh
-sudo install -m 644 deploy/folio.service.example /etc/systemd/system/folio.service
-sudo systemctl daemon-reload
-sudo systemctl enable --now folio
-sudo journalctl -u folio -n 50 --no-pager
+git clone https://github.com/Silent-Protocol-Inc/folio.git && cd folio
+cp .env.example .env && chmod 600 .env    # set FOLIO_ORIGIN and PORT
+docker compose up -d                      # pulls ghcr.io/silent-protocol-inc/folio
+docker compose exec folio node scripts/account.mjs you@example.com
 ```
 
-After HTTPS is working, open the site and confirm you see the login screen. Sign in, change the temporary password, and enroll a new passkey under **Settings → Security** if desired.
+Add `--build` to build the image from source instead of pulling it.
 
-## Move existing data
+</details>
 
-Export a JSON backup from **Settings → Export backup** in the current Folio account. Create the matching account on the VPS, sign in, and restore via **Settings → Import backup**. Import replaces the destination account's workspace. Passwords, sessions, and passkeys do not travel with a workspace backup.
+<details>
+<summary><b>Run with Node.js, no Docker</b></summary>
+
+Needs Node.js 24 or newer.
+
+```sh
+cp .env.example .env && chmod 600 .env    # set FOLIO_ORIGIN, PORT and FOLIO_DB_PATH
+npm ci
+npm run build
+npm run account:add -- you@example.com
+npm start
+```
+
+To run it as a service, adapt [`deploy/folio.service.example`](deploy/folio.service.example) (a systemd unit for a dedicated `folio` user), install it in `/etc/systemd/system/` and run `systemctl enable --now folio`.
+
+</details>
+
+## Screenshots
+
+| Transactions | Budgets |
+| --- | --- |
+| <img src="docs/screenshots/transactions.webp" alt="Transactions list with income and expenses by category"> | <img src="docs/screenshots/budgets.webp" alt="Monthly budgets per category with amounts left"> |
+| **Investments** | **Savings goals** |
+| <img src="docs/screenshots/investments.webp" alt="Investments with market value, cost basis, gains and asset allocation"> | <img src="docs/screenshots/goals.webp" alt="Savings goals with progress toward each target"> |
+| **Debts** | **Subscriptions** |
+| <img src="docs/screenshots/debts.webp" alt="Debts owed and owed to you with payments"> | <img src="docs/screenshots/subscriptions.webp" alt="Subscriptions with renewal dates"> |
+
+<p align="center">
+  <img src="docs/screenshots/phone-overview.webp" width="30%" alt="Folio on a phone: overview">
+  <img src="docs/screenshots/phone-transactions.webp" width="30%" alt="Folio on a phone: transactions">
+  <img src="docs/screenshots/phone-goals.webp" width="30%" alt="Folio on a phone: savings goals">
+</p>
+
+## Add to your phone
+
+- **iPhone:** open your Folio address in Safari, tap **Share → Add to Home Screen**.
+- **Android:** open it in Chrome and choose **Install app**.
+
+It opens full screen with the Folio icon. Enroll a passkey under **Settings → Security** to sign in with Face ID or your fingerprint.
+
+## Configuration
+
+Set these in `.env`.
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `FOLIO_ORIGIN` | none (required) | The exact address you open Folio at, such as `https://folio.example.com`. HTTP is allowed only for `localhost`. |
+| `PORT` | `4173` | Port Folio listens on. |
+| `FOLIO_DB_PATH` | `./data/folio.sqlite` | SQLite database file (Node.js install). Docker always uses `/data/folio.sqlite`. |
+| `FOLIO_DATA_DIR` | `./data` | Docker: host folder that holds the database. |
+| `FOLIO_HOST` | `127.0.0.1` | Listen address. The Docker image sets `0.0.0.0` inside the container and publishes the port on the host's `127.0.0.1` only. |
+| `FOLIO_UID` / `FOLIO_GID` | `1000` | Docker: user the container runs as; it must own `FOLIO_DATA_DIR`. |
+| `FOLIO_IMAGE` | `ghcr.io/silent-protocol-inc/folio:latest` | Docker: image to run, for example a pinned version such as `:1.1.0`. |
 
 ## Backups and upgrades
 
-- An app-level JSON backup covers one workspace. For a full instance backup, use SQLite's online backup command with the actual database path, such as `sqlite3 /var/lib/folio/folio.sqlite '.backup /secure/backups/folio.sqlite'`. Protect the resulting file because it includes financial records and authentication data. Keep a backup outside the VPS.
-- SQLite runs in WAL mode. Use the SQLite backup command for a live database. For an offline restore, stop the service, move the prior database and any `-wal` and `-shm` sidecars aside, install the backup at `FOLIO_DB_PATH` with the correct owner and permissions, and restart.
-- `deploy/backup.sh` makes a checked online backup and keeps the newest 30: `FOLIO_DB_PATH=/var/lib/folio/folio.sqlite BACKUP_DIR=/secure/backups deploy/backup.sh`. Run it daily from cron and copy the backups off the server.
-- Before an upgrade, back up the database. Keep `.env` and the database, run `npm ci && npm run build` in the new release, and restart. The server applies pending SQL migrations on startup. Check the service logs, then sign in and verify your workspace.
+- **Per account:** **Settings → Export backup** saves a JSON file; **Import backup** restores it into any Folio account and replaces that account's workspace. Passwords, sessions and passkeys are not part of it.
+- **Whole instance:** `deploy/backup.sh` makes a checked online backup of the SQLite file and keeps the newest 30 (needs `sqlite3` on the host):
+
+  ```sh
+  FOLIO_DB_PATH=./data/folio.sqlite BACKUP_DIR=./backups deploy/backup.sh
+  ```
+
+  Run it daily from cron and copy the backups off the server. They contain financial records and sign-in data, so keep them private.
+- **Upgrade with Docker:** back up, then `docker compose pull && docker compose up -d`. Folio applies database migrations when it starts.
+- **Upgrade with Node.js:** back up, replace the source, run `npm ci && npm run build`, then restart.
+
+## Privacy
+
+Folio sends nothing to third parties. The one outside request is optional: the currency converter asks [Frankfurter](https://frankfurter.dev) for an exchange rate, from your browser, when you use it.
+
+## Project layout
+
+```
+public/    HTML, CSS, browser code and icons
+server/    request handler, authentication, workspace validation
+scripts/   Node HTTP server, SQLite access, account tool, build
+drizzle/   SQL migrations, applied on start
+deploy/    reverse proxy and systemd examples, backup script
+docs/      sample workspace and screenshots
+```
+
+## Contributing and contact
+
+Bug reports and pull requests are welcome. Keep changes small, keep old workspace backups importable, and never commit `.env` or database files.
+
+- Questions and feedback: **team@silentprotocol.top**
+- Security issues: email **team@silentprotocol.top** instead of opening a public issue. See [SECURITY.md](SECURITY.md).
 
 ## License
 

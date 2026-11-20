@@ -1,4 +1,5 @@
-# Folio on this VPS: listens on 127.0.0.1:${PORT} (host network, loopback only); nginx terminates HTTPS.
+# Folio in Docker (Linux): listens on 127.0.0.1:${PORT} (host network, loopback only); a reverse proxy terminates HTTPS.
+# Data lives in FOLIO_DATA_DIR (default ./data, kept out of git).
 services:
   folio:
     build: .
@@ -9,7 +10,7 @@ services:
     environment:
       FOLIO_DB_PATH: /data/folio.sqlite
     volumes:
-      - ../folio-data:/data
+      - ${FOLIO_DATA_DIR:-./data}:/data
     read_only: true
     tmpfs: [/tmp]
     cap_drop: [ALL]

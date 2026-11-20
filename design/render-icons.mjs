@@ -1,5 +1,5 @@
 // Renders design/app-icon.svg to the PNG icons in public/ (headless Chromium via Playwright).
-// Usage: node design/render-icons.mjs <path-to-playwright index.mjs>
+// Usage: node design/render-icons.mjs <path to playwright's index.mjs>  (CHROMIUM=/path/to/chromium to override)
 import { readFile } from "node:fs/promises";
 const { chromium } = await import(process.argv[2]);
 const svg = await readFile(new URL("./app-icon.svg", import.meta.url), "utf8");

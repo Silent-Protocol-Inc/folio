@@ -1,0 +1,102 @@
+name: Release
+
+# Push a tag such as v1.2.0 to release. Order: CI gates, version check, multi-arch image to GHCR, smoke test of the
+# published image, then the GitHub release with notes from CHANGELOG.md and the source zip.
+# Roll back by pinning a previous image: FOLIO_IMAGE=ghcr.io/silent-protocol-inc/folio:<version>.
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  verify:
+    name: Version and changelog
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: v
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          pkg=$(node -p "require('./package.json').version")
+          [ "$tag" = "$pkg" ] || { echo "::error::Tag v$tag does not match package.json $pkg"; exit 1; }
+          grep -q "^## $tag " CHANGELOG.md || { echo "::error::CHANGELOG.md has no '## $tag' section"; exit 1; }
+          echo "version=$tag" >> "$GITHUB_OUTPUT"
+
+  image:
+    name: Docker image (amd64, arm64)
+    needs: [ci, verify]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  smoke:
+    name: Smoke test the published image
+    needs: [image, verify]
+    runs-on: ubuntu-latest
+    permissions:
+      packages: read
+    steps:
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Start the image and sign-in API answers
+        run: |
+          image="ghcr.io/$(echo "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]'):${{ needs.verify.outputs.version }}"
+          docker run -d --name folio -p 127.0.0.1:4173:4173 -e FOLIO_ORIGIN=http://localhost:4173 "$image"
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:4173/api/session && exit 0; sleep 1; done
+          docker logs folio; exit 1
+
+  release:
+    name: GitHub release
+    needs: [smoke, verify]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Notes from CHANGELOG.md and the source zip
+        env:
+          VERSION: ${{ needs.verify.outputs.version }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          awk -v v="$VERSION" '$0 ~ "^## "v" " {on=1; next} /^## / && on {exit} on' CHANGELOG.md > notes.md
+          printf '\n## Install\n\nLinux, macOS, Termux: `curl -fsSL https://raw.githubusercontent.com/%s/main/install.sh | bash`\n\nWindows (Docker Desktop): `irm https://raw.githubusercontent.com/%s/main/install.ps1 | iex`\n\nDocker image: `ghcr.io/%s:%s`\n' \
+            "$GITHUB_REPOSITORY" "$GITHUB_REPOSITORY" "$(echo "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]')" "$VERSION" >> notes.md
+          git archive --format=zip --prefix="folio-$VERSION/" -o "folio-$VERSION.zip" "$GITHUB_REF_NAME"
+          gh release create "$GITHUB_REF_NAME" --title "Folio $VERSION" --notes-file notes.md "folio-$VERSION.zip"

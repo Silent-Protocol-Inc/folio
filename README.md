@@ -6,6 +6,7 @@
 
 **A self-hosted personal finance workspace.** Track transactions, budgets, debts, subscriptions, savings goals and investments on your own server, and open it on your phone like an app.
 
+[![CI](https://github.com/Silent-Protocol-Inc/folio/actions/workflows/ci.yml/badge.svg)](https://github.com/Silent-Protocol-Inc/folio/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/Silent-Protocol-Inc/folio?color=8d72f1)](https://github.com/Silent-Protocol-Inc/folio/releases)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-8d72f1)](LICENSE)
 [![Docker image](https://img.shields.io/badge/docker-ghcr.io-2496ED?logo=docker&logoColor=white)](https://github.com/Silent-Protocol-Inc/folio/pkgs/container/folio)
@@ -35,13 +36,25 @@
 
 ## Quick start
 
-You need a Linux, macOS or Windows machine with [Docker](https://docs.docker.com/get-docker/). One command installs and starts Folio and creates your first account:
+One command installs Folio, starts it and creates your first account. Pick your system:
+
+| System | Run this | Needs |
+| --- | --- | --- |
+| **Linux** (Ubuntu, Debian, Fedora, Arch, Alpine, …) | `curl -fsSL https://raw.githubusercontent.com/Silent-Protocol-Inc/folio/main/install.sh \| bash` | Docker, or Node.js 24 |
+| **macOS** | `curl -fsSL https://raw.githubusercontent.com/Silent-Protocol-Inc/folio/main/install.sh \| bash` | Docker Desktop, or Node.js 24 (`brew install node`) |
+| **Windows** (PowerShell) | `irm https://raw.githubusercontent.com/Silent-Protocol-Inc/folio/main/install.ps1 \| iex` | Docker Desktop |
+| **Android** (Termux) | `pkg install -y curl && curl -fsSL https://raw.githubusercontent.com/Silent-Protocol-Inc/folio/main/install.sh \| bash` | nothing else; Node.js is installed for you |
+
+The installer uses Docker when it finds it and otherwise installs Folio natively with Node.js. It asks for the install folder, the port, the address you will open Folio at, and your email; accept the defaults to use Folio on that device at <http://localhost:4173>. It prints a temporary password once: sign in with it and choose your own.
+
+Native installs get a small control command in the install folder:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/Silent-Protocol-Inc/folio/main/install.sh | bash
+~/folio/folio status|start|stop|restart|logs|update
+~/folio/folio add-user you@example.com
 ```
 
-The installer asks for the install folder, the port, the address you will open Folio at, and your email. To try it on your own computer, accept the defaults and open <http://localhost:4173>. It prints a temporary password once; sign in with it and choose your own.
+On Termux, run `termux-wake-lock` so Android keeps Folio running, and `~/folio/folio start` after a reboot.
 
 Want to see Folio with data before entering your own? Sign in, open **Settings → Import backup** and pick [`docs/demo/demo-workspace.json`](docs/demo/demo-workspace.json).
 
@@ -172,7 +185,7 @@ docs/      sample workspace and screenshots
 
 ## Contributing and contact
 
-Bug reports and pull requests are welcome. Keep changes small, keep old workspace backups importable, and never commit `.env` or database files.
+Bug reports and pull requests are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md) for the development setup, the CI pipeline and how releases are made.
 
 - Questions and feedback: **team@silentprotocol.top**
 - Security issues: email **team@silentprotocol.top** instead of opening a public issue. See [SECURITY.md](SECURITY.md).

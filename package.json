@@ -7,7 +7,9 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "start": "node --env-file=.env scripts/serve.mjs",
-    "account:add": "node --env-file=.env scripts/account.mjs"
+    "account:add": "node --env-file=.env scripts/account.mjs",
+    "check": "for f in server/*.js scripts/*.mjs public/*.js design/*.mjs docs/demo/*.mjs test/*.mjs; do node --check \"$f\" || exit 1; done",
+    "test": "node --test test/*.test.mjs"
   },
   "dependencies": {
     "@noble/hashes": "2.2.0",

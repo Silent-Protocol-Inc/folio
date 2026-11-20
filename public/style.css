@@ -81,3 +81,10 @@ dialog{border:1px solid #434052;border-radius:19px;background:#1d1e2b;color:var(
  .auth-pane h2+p{margin-bottom:19px}.auth-lock{height:37px;width:37px;margin-bottom:11px}.auth-lock svg{width:19px;height:19px}
 }
 .auth-field{display:grid;gap:6px}
+/* Home-screen app on iPhones with a notch or Dynamic Island: the page draws under the status bar
+   (black-translucent + viewport-fit=cover), so keep content below it. env() is 0 everywhere else. */
+.topbar{padding-top:env(safe-area-inset-top);height:calc(72px + env(safe-area-inset-top))}
+.sidebar{padding-top:calc(25px + env(safe-area-inset-top))}
+.auth-art{padding-top:max(clamp(28px,5vw,100px),calc(20px + env(safe-area-inset-top)))}
+@media(max-width:780px){.topbar{height:calc(59px + env(safe-area-inset-top));padding-top:env(safe-area-inset-top)}}
+@media(max-width:760px){.auth-art{padding-top:calc(20px + env(safe-area-inset-top))}}

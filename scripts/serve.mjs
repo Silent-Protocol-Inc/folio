@@ -12,6 +12,8 @@ if (site.origin !== process.env.FOLIO_ORIGIN || !(site.protocol === 'https:' || 
  throw Error('FOLIO_ORIGIN must be the exact HTTPS origin, with no trailing slash. HTTP is available for local loopback testing.');
 }
 const port = Number(process.env.PORT || '4173');
+// Loopback by default. The Docker image sets 0.0.0.0 inside the container and publishes the port on the host's 127.0.0.1 only.
+const host = process.env.FOLIO_HOST || '127.0.0.1';
 if (!Number.isInteger(port) || port < 1 || port > 65535) throw Error('PORT must be between 1 and 65535.');
 const db = openDatabase();
 const env = { DB: bind(db), FOLIO_ORIGIN: site.origin };
@@ -47,7 +49,7 @@ const server = createServer(async (req, res) => {
   res.end();
  }
 });
-server.listen(port, '127.0.0.1', () => console.log('Folio listening on 127.0.0.1:' + port));
+server.listen(port, host, () => console.log('Folio listening on ' + host + ':' + port));
 for (const signal of ['SIGINT','SIGTERM']) {
  process.once(signal, () => {
   server.close(() => db.close());

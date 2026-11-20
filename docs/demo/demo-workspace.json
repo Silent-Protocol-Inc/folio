@@ -1,0 +1,1141 @@
+{
+ "version": 1,
+ "demo": false,
+ "currency": "IDR",
+ "reportRate": 1,
+ "reportDate": "",
+ "transactions": [
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0001",
+   "date": "2026-06-01",
+   "type": "income",
+   "title": "Monthly salary",
+   "amount": 18500000,
+   "category": "Salary",
+   "account": "BCA payroll"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0002",
+   "date": "2026-06-02",
+   "type": "expense",
+   "title": "Rent, Kemang studio",
+   "amount": 5200000,
+   "category": "Housing",
+   "account": "BCA payroll"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0003",
+   "date": "2026-06-05",
+   "type": "expense",
+   "title": "Electricity and water",
+   "amount": 640000,
+   "category": "Bills",
+   "account": "BCA payroll"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0004",
+   "date": "2026-06-06",
+   "type": "expense",
+   "title": "Mobile data plan",
+   "amount": 150000,
+   "category": "Bills",
+   "account": "Jago"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0005",
+   "date": "2026-06-08",
+   "type": "expense",
+   "title": "Groceries",
+   "amount": 1150000,
+   "category": "Food & drink",
+   "account": "BCA payroll"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0006",
+   "date": "2026-06-14",
+   "type": "expense",
+   "title": "Lunches and coffee",
+   "amount": 860000,
+   "category": "Food & drink",
+   "account": "Jago"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0007",
+   "date": "2026-06-10",
+   "type": "expense",
+   "title": "Commuter line and ride-hailing",
+   "amount": 520000,
+   "category": "Transport",
+   "account": "Jago"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0008",
+   "date": "2026-06-20",
+   "type": "expense",
+   "title": "Weekend dinner",
+   "amount": 420000,
+   "category": "Entertainment",
+   "account": "Jago"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0009",
+   "date": "2026-06-25",
+   "type": "expense",
+   "title": "Credit card payment",
+   "amount": 1500000,
+   "category": "Debt payment",
+   "account": "BCA payroll"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0010",
+   "date": "2026-07-01",
+   "type": "income",
+   "title": "Monthly salary",
+   "amount": 18500000,
+   "category": "Salary",
+   "account": "BCA payroll"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0011",
+   "date": "2026-07-12",
+   "type": "income",
+   "title": "Website project",
+   "amount": 3500000,
+   "category": "Freelance",
+   "account": "Jago"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0012",
+   "date": "2026-07-02",
+   "type": "expense",
+   "title": "Rent, Kemang studio",
+   "amount": 5200000,
+   "category": "Housing",
+   "account": "BCA payroll"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0013",
+   "date": "2026-07-05",
+   "type": "expense",
+   "title": "Electricity and water",
+   "amount": 655000,
+   "category": "Bills",
+   "account": "BCA payroll"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0014",
+   "date": "2026-07-06",
+   "type": "expense",
+   "title": "Mobile data plan",
+   "amount": 150000,
+   "category": "Bills",
+   "account": "Jago"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0015",
+   "date": "2026-07-08",
+   "type": "expense",
+   "title": "Groceries",
+   "amount": 1270000,
+   "category": "Food & drink",
+   "account": "BCA payroll"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0016",
+   "date": "2026-07-14",
+   "type": "expense",
+   "title": "Lunches and coffee",
+   "amount": 950000,
+   "category": "Food & drink",
+   "account": "Jago"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0017",
+   "date": "2026-07-10",
+   "type": "expense",
+   "title": "Commuter line and ride-hailing",
+   "amount": 560000,
+   "category": "Transport",
+   "account": "Jago"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0018",
+   "date": "2026-07-20",
+   "type": "expense",
+   "title": "Weekend dinner",
+   "amount": 440000,
+   "category": "Entertainment",
+   "account": "Jago"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0019",
+   "date": "2026-07-25",
+   "type": "expense",
+   "title": "Credit card payment",
+   "amount": 1500000,
+   "category": "Debt payment",
+   "account": "BCA payroll"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0020",
+   "date": "2026-08-01",
+   "type": "income",
+   "title": "Monthly salary",
+   "amount": 18500000,
+   "category": "Salary",
+   "account": "BCA payroll"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0021",
+   "date": "2026-08-02",
+   "type": "expense",
+   "title": "Rent, Kemang studio",
+   "amount": 5200000,
+   "category": "Housing",
+   "account": "BCA payroll"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0022",
+   "date": "2026-08-05",
+   "type": "expense",
+   "title": "Electricity and water",
+   "amount": 670000,
+   "category": "Bills",
+   "account": "BCA payroll"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0023",
+   "date": "2026-08-06",
+   "type": "expense",
+   "title": "Mobile data plan",
+   "amount": 150000,
+   "category": "Bills",
+   "account": "Jago"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0024",
+   "date": "2026-08-08",
+   "type": "expense",
+   "title": "Groceries",
+   "amount": 1390000,
+   "category": "Food & drink",
+   "account": "BCA payroll"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0025",
+   "date": "2026-08-14",
+   "type": "expense",
+   "title": "Lunches and coffee",
+   "amount": 860000,
+   "category": "Food & drink",
+   "account": "Jago"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0026",
+   "date": "2026-08-10",
+   "type": "expense",
+   "title": "Commuter line and ride-hailing",
+   "amount": 600000,
+   "category": "Transport",
+   "account": "Jago"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0027",
+   "date": "2026-08-20",
+   "type": "expense",
+   "title": "Weekend dinner",
+   "amount": 460000,
+   "category": "Entertainment",
+   "account": "Jago"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0028",
+   "date": "2026-08-18",
+   "type": "expense",
+   "title": "Running shoes",
+   "amount": 1350000,
+   "category": "Shopping",
+   "account": "BCA payroll"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0029",
+   "date": "2026-08-25",
+   "type": "expense",
+   "title": "Credit card payment",
+   "amount": 1500000,
+   "category": "Debt payment",
+   "account": "BCA payroll"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0030",
+   "date": "2026-09-01",
+   "type": "income",
+   "title": "Monthly salary",
+   "amount": 18500000,
+   "category": "Salary",
+   "account": "BCA payroll"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0031",
+   "date": "2026-09-12",
+   "type": "income",
+   "title": "Website project",
+   "amount": 4000000,
+   "category": "Freelance",
+   "account": "Jago"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0032",
+   "date": "2026-09-02",
+   "type": "expense",
+   "title": "Rent, Kemang studio",
+   "amount": 5200000,
+   "category": "Housing",
+   "account": "BCA payroll"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0033",
+   "date": "2026-09-05",
+   "type": "expense",
+   "title": "Electricity and water",
+   "amount": 685000,
+   "category": "Bills",
+   "account": "BCA payroll"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0034",
+   "date": "2026-09-06",
+   "type": "expense",
+   "title": "Mobile data plan",
+   "amount": 150000,
+   "category": "Bills",
+   "account": "Jago"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0035",
+   "date": "2026-09-08",
+   "type": "expense",
+   "title": "Groceries",
+   "amount": 1150000,
+   "category": "Food & drink",
+   "account": "BCA payroll"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0036",
+   "date": "2026-09-14",
+   "type": "expense",
+   "title": "Lunches and coffee",
+   "amount": 950000,
+   "category": "Food & drink",
+   "account": "Jago"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0037",
+   "date": "2026-09-10",
+   "type": "expense",
+   "title": "Commuter line and ride-hailing",
+   "amount": 520000,
+   "category": "Transport",
+   "account": "Jago"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0038",
+   "date": "2026-09-20",
+   "type": "expense",
+   "title": "Weekend dinner",
+   "amount": 480000,
+   "category": "Entertainment",
+   "account": "Jago"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0039",
+   "date": "2026-09-16",
+   "type": "expense",
+   "title": "Online design course",
+   "amount": 990000,
+   "category": "Education",
+   "account": "Jago"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0040",
+   "date": "2026-09-25",
+   "type": "expense",
+   "title": "Credit card payment",
+   "amount": 1500000,
+   "category": "Debt payment",
+   "account": "BCA payroll"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0041",
+   "date": "2026-10-01",
+   "type": "income",
+   "title": "Monthly salary",
+   "amount": 18500000,
+   "category": "Salary",
+   "account": "BCA payroll"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0042",
+   "date": "2026-10-02",
+   "type": "expense",
+   "title": "Rent, Kemang studio",
+   "amount": 5200000,
+   "category": "Housing",
+   "account": "BCA payroll"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0043",
+   "date": "2026-10-05",
+   "type": "expense",
+   "title": "Electricity and water",
+   "amount": 700000,
+   "category": "Bills",
+   "account": "BCA payroll"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0044",
+   "date": "2026-10-06",
+   "type": "expense",
+   "title": "Mobile data plan",
+   "amount": 150000,
+   "category": "Bills",
+   "account": "Jago"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0045",
+   "date": "2026-10-08",
+   "type": "expense",
+   "title": "Groceries",
+   "amount": 1270000,
+   "category": "Food & drink",
+   "account": "BCA payroll"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0046",
+   "date": "2026-10-14",
+   "type": "expense",
+   "title": "Lunches and coffee",
+   "amount": 860000,
+   "category": "Food & drink",
+   "account": "Jago"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0047",
+   "date": "2026-10-10",
+   "type": "expense",
+   "title": "Commuter line and ride-hailing",
+   "amount": 560000,
+   "category": "Transport",
+   "account": "Jago"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0048",
+   "date": "2026-10-20",
+   "type": "expense",
+   "title": "Weekend dinner",
+   "amount": 500000,
+   "category": "Entertainment",
+   "account": "Jago"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0049",
+   "date": "2026-10-22",
+   "type": "expense",
+   "title": "Dentist check-up",
+   "amount": 750000,
+   "category": "Health",
+   "account": "BCA payroll"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0050",
+   "date": "2026-10-25",
+   "type": "expense",
+   "title": "Credit card payment",
+   "amount": 1500000,
+   "category": "Debt payment",
+   "account": "BCA payroll"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0051",
+   "date": "2026-11-01",
+   "type": "income",
+   "title": "Monthly salary",
+   "amount": 18500000,
+   "category": "Salary",
+   "account": "BCA payroll"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0052",
+   "date": "2026-11-12",
+   "type": "income",
+   "title": "Website project",
+   "amount": 4500000,
+   "category": "Freelance",
+   "account": "Jago"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0053",
+   "date": "2026-11-02",
+   "type": "expense",
+   "title": "Rent, Kemang studio",
+   "amount": 5200000,
+   "category": "Housing",
+   "account": "BCA payroll"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0054",
+   "date": "2026-11-05",
+   "type": "expense",
+   "title": "Electricity and water",
+   "amount": 715000,
+   "category": "Bills",
+   "account": "BCA payroll"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0055",
+   "date": "2026-11-06",
+   "type": "expense",
+   "title": "Mobile data plan",
+   "amount": 150000,
+   "category": "Bills",
+   "account": "Jago"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0056",
+   "date": "2026-11-08",
+   "type": "expense",
+   "title": "Groceries",
+   "amount": 1390000,
+   "category": "Food & drink",
+   "account": "BCA payroll"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0057",
+   "date": "2026-11-14",
+   "type": "expense",
+   "title": "Lunches and coffee",
+   "amount": 950000,
+   "category": "Food & drink",
+   "account": "Jago"
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "tx-0058",
+   "date": "2026-11-10",
+   "type": "expense",
+   "title": "Commuter line and ride-hailing",
+   "amount": 600000,
+   "category": "Transport",
+   "account": "Jago"
+  }
+ ],
+ "debts": [
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "debt-0059",
+   "title": "Credit card balance",
+   "source": "Credit card",
+   "direction": "owe",
+   "amount": 9000000,
+   "due": "2027-03-25",
+   "lead": 5,
+   "payments": [
+    {
+     "date": "2026-06-25",
+     "amount": 1500000
+    },
+    {
+     "date": "2026-07-25",
+     "amount": 1500000
+    },
+    {
+     "date": "2026-08-25",
+     "amount": 1500000
+    },
+    {
+     "date": "2026-09-25",
+     "amount": 1500000
+    },
+    {
+     "date": "2026-10-25",
+     "amount": 1500000
+    }
+   ]
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "debt-0060",
+   "title": "Loan to Rina for her laptop",
+   "source": "Person",
+   "direction": "owed",
+   "amount": 2400000,
+   "due": "2026-12-31",
+   "lead": 7,
+   "payments": [
+    {
+     "date": "2026-09-30",
+     "amount": 800000
+    },
+    {
+     "date": "2026-10-31",
+     "amount": 800000
+    }
+   ]
+  }
+ ],
+ "subscriptions": [
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "sub-0061",
+   "title": "Spotify Premium",
+   "amount": 54990,
+   "cycle": "monthly",
+   "due": "2026-11-28",
+   "status": "active",
+   "lead": 3
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "sub-0062",
+   "title": "Netflix Standard",
+   "amount": 120000,
+   "cycle": "monthly",
+   "due": "2026-12-03",
+   "status": "active",
+   "lead": 3
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "sub-0063",
+   "title": "iCloud+ 200 GB",
+   "amount": 49000,
+   "cycle": "monthly",
+   "due": "2026-12-09",
+   "status": "active",
+   "lead": 3
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "sub-0064",
+   "title": "Gym membership",
+   "amount": 450000,
+   "cycle": "monthly",
+   "due": "2026-12-01",
+   "status": "active",
+   "lead": 5
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "sub-0065",
+   "title": "Domain renewal",
+   "amount": 230000,
+   "cycle": "yearly",
+   "due": "2027-02-14",
+   "status": "active",
+   "lead": 14
+  }
+ ],
+ "goals": [
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "goal-0066",
+   "title": "Emergency fund (6 months)",
+   "amount": 60000000,
+   "due": "2027-12-31",
+   "contributions": [
+    {
+     "date": "2026-06-03",
+     "amount": 2500000
+    },
+    {
+     "date": "2026-07-03",
+     "amount": 2500000
+    },
+    {
+     "date": "2026-08-03",
+     "amount": 2500000
+    },
+    {
+     "date": "2026-09-03",
+     "amount": 2500000
+    },
+    {
+     "date": "2026-10-03",
+     "amount": 2500000
+    },
+    {
+     "date": "2026-11-03",
+     "amount": 2500000
+    }
+   ]
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "goal-0067",
+   "title": "Japan trip, spring 2027",
+   "amount": 25000000,
+   "due": "2027-03-15",
+   "contributions": [
+    {
+     "date": "2026-07-04",
+     "amount": 1750000
+    },
+    {
+     "date": "2026-08-04",
+     "amount": 1750000
+    },
+    {
+     "date": "2026-09-04",
+     "amount": 1750000
+    },
+    {
+     "date": "2026-10-04",
+     "amount": 1750000
+    },
+    {
+     "date": "2026-11-04",
+     "amount": 1750000
+    }
+   ]
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "goal-0068",
+   "title": "New laptop",
+   "amount": 18000000,
+   "due": "2027-06-30",
+   "contributions": [
+    {
+     "date": "2026-10-04",
+     "amount": 1000000
+    },
+    {
+     "date": "2026-11-04",
+     "amount": 1000000
+    }
+   ]
+  }
+ ],
+ "budgets": [
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "budget-0069",
+   "title": "Food & drink",
+   "category": "Food & drink",
+   "amount": 2300000
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "budget-0070",
+   "title": "Transport",
+   "category": "Transport",
+   "amount": 650000
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "budget-0071",
+   "title": "Bills",
+   "category": "Bills",
+   "amount": 900000
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "budget-0072",
+   "title": "Entertainment",
+   "category": "Entertainment",
+   "amount": 600000
+  },
+  {
+   "currency": "IDR",
+   "rate": 1,
+   "note": "",
+   "id": "budget-0073",
+   "title": "Shopping",
+   "category": "Shopping",
+   "amount": 750000
+  }
+ ],
+ "investments": [
+  {
+   "id": "inv-0074",
+   "name": "Money market fund",
+   "symbol": "RDPU",
+   "kind": "fund",
+   "account": "Bibit",
+   "currency": "IDR",
+   "mark": {
+    "date": "2026-11-18",
+    "price": 2046,
+    "rate": 1
+   },
+   "activity": [
+    {
+     "id": "act-0075",
+     "type": "buy",
+     "date": "2026-06-03",
+     "quantity": 250,
+     "price": 2000,
+     "fee": 0,
+     "rate": 1,
+     "note": ""
+    },
+    {
+     "id": "act-0076",
+     "type": "buy",
+     "date": "2026-07-03",
+     "quantity": 250,
+     "price": 2000,
+     "fee": 0,
+     "rate": 1,
+     "note": ""
+    },
+    {
+     "id": "act-0077",
+     "type": "buy",
+     "date": "2026-08-03",
+     "quantity": 250,
+     "price": 2000,
+     "fee": 0,
+     "rate": 1,
+     "note": ""
+    },
+    {
+     "id": "act-0078",
+     "type": "buy",
+     "date": "2026-09-03",
+     "quantity": 250,
+     "price": 2000,
+     "fee": 0,
+     "rate": 1,
+     "note": ""
+    },
+    {
+     "id": "act-0079",
+     "type": "buy",
+     "date": "2026-10-03",
+     "quantity": 250,
+     "price": 2000,
+     "fee": 0,
+     "rate": 1,
+     "note": ""
+    },
+    {
+     "id": "act-0080",
+     "type": "buy",
+     "date": "2026-11-03",
+     "quantity": 250,
+     "price": 2000,
+     "fee": 0,
+     "rate": 1,
+     "note": ""
+    }
+   ]
+  },
+  {
+   "id": "inv-0081",
+   "name": "Retail government bond ORI028",
+   "symbol": "ORI028",
+   "kind": "bond",
+   "account": "Bank",
+   "currency": "IDR",
+   "mark": {
+    "date": "2026-11-18",
+    "price": 1000000,
+    "rate": 1
+   },
+   "activity": [
+    {
+     "id": "act-0082",
+     "type": "buy",
+     "date": "2026-07-15",
+     "quantity": 10,
+     "price": 1000000,
+     "fee": 0,
+     "rate": 1,
+     "note": ""
+    },
+    {
+     "id": "act-0083",
+     "type": "income",
+     "date": "2026-10-15",
+     "quantity": 0,
+     "price": 156000,
+     "fee": 0,
+     "rate": 1,
+     "note": ""
+    }
+   ]
+  },
+  {
+   "id": "inv-0084",
+   "name": "Gold savings",
+   "symbol": "XAU (g)",
+   "kind": "metal",
+   "account": "Pegadaian",
+   "currency": "IDR",
+   "mark": {
+    "date": "2026-11-18",
+    "price": 1745000,
+    "rate": 1
+   },
+   "activity": [
+    {
+     "id": "act-0085",
+     "type": "buy",
+     "date": "2026-06-20",
+     "quantity": 2,
+     "price": 1610000,
+     "fee": 0,
+     "rate": 1,
+     "note": ""
+    },
+    {
+     "id": "act-0086",
+     "type": "buy",
+     "date": "2026-09-20",
+     "quantity": 1,
+     "price": 1690000,
+     "fee": 0,
+     "rate": 1,
+     "note": ""
+    }
+   ]
+  },
+  {
+   "id": "inv-0087",
+   "name": "Bank Central Asia",
+   "symbol": "BBCA",
+   "kind": "stock",
+   "account": "Stockbit",
+   "currency": "IDR",
+   "mark": {
+    "date": "2026-11-18",
+    "price": 9650,
+    "rate": 1
+   },
+   "activity": [
+    {
+     "id": "act-0088",
+     "type": "buy",
+     "date": "2026-08-05",
+     "quantity": 300,
+     "price": 9200,
+     "fee": 4140,
+     "rate": 1,
+     "note": ""
+    },
+    {
+     "id": "act-0089",
+     "type": "income",
+     "date": "2026-11-06",
+     "quantity": 0,
+     "price": 51000,
+     "fee": 0,
+     "rate": 1,
+     "note": ""
+    }
+   ]
+  }
+ ]
+}

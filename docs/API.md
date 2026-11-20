@@ -1,0 +1,105 @@
+# HTTP API
+
+Folio's browser code talks to the server with JSON over HTTPS. The API is internal: it can change between versions. Use it to build tools for your own instance, and pin the Folio version you test against.
+
+## Conventions
+
+- **Base:** your `FOLIO_ORIGIN`, for example `https://folio.example.com`.
+- **Body:** requests with a body send `Content-Type: application/json`. Most bodies are capped at 8 KB; the workspace at 1 MB.
+- **Origin:** every request except `GET` must carry `Origin: <FOLIO_ORIGIN>` exactly, or it is rejected with `403`.
+- **Session:** signing in sets the cookie `__Host-folio_session` (`HttpOnly; Secure; SameSite=Strict`, 12 hours). Send it back on later calls.
+- **Errors:** `{ "error": "Message for people." }` with the status code below.
+
+| Status | Meaning |
+| --- | --- |
+| `400` | Invalid input |
+| `401` | Wrong credentials, expired challenge, or not signed in |
+| `403` | Wrong `Origin`, or the temporary password must be changed first |
+| `409` | Conflict: the workspace or a passkey changed meanwhile |
+| `413` / `415` | Body too large / not JSON |
+| `429` | Too many attempts; wait a few minutes |
+| `503` | Storage unavailable |
+
+## Session
+
+### `GET /api/session`
+
+Who is signed in. Works without a session.
+
+```json
+{ "user": { "email": "you@example.com", "mustChange": false } }
+```
+
+`user` is `null` when signed out. `mustChange: true` means only `/api/password` and `/api/logout` are allowed until the password is changed.
+
+### `POST /api/login`
+
+```json
+{ "email": "you@example.com", "password": "…" }
+```
+
+`200` with the same body as `/api/session` and the session cookie. `401` for any wrong email or password (the message doesn't say which). Rate limited per IP and per account.
+
+### `POST /api/logout`
+
+Ends this session and clears the cookie. `{ "ok": true }`.
+
+### `POST /api/password`
+
+```json
+{ "currentPassword": "…", "newPassword": "at least 8 characters" }
+```
+
+Clears `mustChange`, signs out every other session, and returns a fresh session cookie.
+
+## Workspace
+
+Requires a session whose password is not temporary.
+
+### `GET /api/workspace`
+
+```json
+{ "workspace": { "version": 1, "...": "..." }, "revision": 4 }
+```
+
+`workspace` is `null` for a new account. The format is in [ARCHITECTURE.md](ARCHITECTURE.md#data-model).
+
+### `PUT /api/workspace`
+
+```json
+{ "revision": 4, "workspace": { "version": 1, "demo": false, "currency": "IDR", "...": "..." } }
+```
+
+Saves only if `revision` matches the stored one; returns `{ "revision": 5 }`. A stale revision returns `409`: reload, then save again. An invalid workspace returns `400`.
+
+## Passkeys
+
+Passkeys use WebAuthn through `@simplewebauthn`. Each flow has two calls: get options (a single-use challenge, valid 5 minutes), then send the browser's response.
+
+### `POST /api/passkeys/login/options`
+
+`{ "email": "you@example.com" }` → `{ "id": "challenge id", "options": { … } }`
+
+### `POST /api/passkeys/login/verify`
+
+`{ "id": "challenge id", "response": { … } }` → session cookie and `{ "user": { … } }`. Accounts with a temporary password can't sign in with a passkey.
+
+### `GET /api/passkeys`
+
+`{ "passkeys": [{ "id", "name", "created", "used" }] }` (times in Unix seconds).
+
+### `POST /api/passkeys/enroll/options`
+
+`{ "password": "current password" }` → `{ "id", "options" }`. Up to 10 passkeys per account.
+
+### `POST /api/passkeys/enroll/verify`
+
+`{ "id": "challenge id", "name": "iPhone", "response": { … } }` → `{ "ok": true }`.
+
+### `POST /api/passkeys/remove`
+
+`{ "id": "credential id", "password": "current password" }` → `{ "ok": true }`.
+
+## Static files
+
+`GET /` (the app), `/auth.js`, `/app.js`, `/investments.js`, `/style.css`, `/geist.woff2`, `/folio-art.webp`, `/mark.svg`, `/manifest.webmanifest`, `/apple-touch-icon.png`, `/apple-touch-icon-precomposed.png`, `/icon-192.png`, `/icon-512.png`, `/favicon.ico`. Icons and the manifest are cacheable for a day; everything else is `no-store`. Every other path returns `404`.

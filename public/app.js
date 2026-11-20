@@ -1,3 +1,8 @@
+/*
+ * Folio workspace UI (loaded by auth.js after sign-in): hash routes (#overview, #transactions, #budgets,
+ * #debts, #subscriptions, #goals, #currency, #investments), forms and dialogs, charts, reminders, backup
+ * export/import, and save(), which PUTs the whole workspace with its revision (409 = changed elsewhere).
+ */
 'use strict';
 
 const $ = (selector,root=document) => root.querySelector(selector);

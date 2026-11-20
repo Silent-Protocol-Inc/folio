@@ -2,6 +2,16 @@
 
 Thanks for helping. Folio holds people's financial records, so changes stay small, tested and backwards compatible.
 
+By taking part you agree to the [Code of Conduct](CODE_OF_CONDUCT.md). Questions go in [SUPPORT.md](SUPPORT.md); security problems in [SECURITY.md](SECURITY.md), never in a public issue.
+
+## Where to start
+
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): how the pieces fit, the data model and the security model.
+- [docs/API.md](docs/API.md): every HTTP endpoint.
+- Issues labelled `good first issue` are small and self-contained.
+
+For anything bigger than a bug fix, open an issue first so we can agree on the approach before you write code.
+
 ## Develop
 
 Needs Node.js 24.
@@ -22,7 +32,15 @@ npm run build
 npm test         # end-to-end: real server, throwaway SQLite, sign-in, password change, workspace save
 ```
 
-Rules that keep users safe:
+## Code style
+
+- Plain JavaScript (ES modules on the server, browser scripts in `public/`), no framework and no transpiler. Match the style of the file you edit.
+- Add a dependency only when it carries real weight; Folio has three runtime dependencies on purpose.
+- User-facing text is short, plain English; errors say what to do next.
+- New behaviour comes with a test in `test/` (`node:test`, against the real server). Run a single file with `node --test test/smoke.test.mjs`.
+- Commits: one change per commit, a short imperative subject (`Add passkey rename`), the why in the body.
+
+## Rules that keep users safe
 
 - Never commit `.env`, database files, real financial data or credentials.
 - Keep old workspace backups importable. Schema changes go in a new file in `drizzle/`; never edit an applied migration.

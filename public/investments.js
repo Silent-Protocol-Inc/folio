@@ -1,3 +1,7 @@
+/*
+ * Investments page: holdings with buy, sell and income activity, cost basis, realized and unrealized
+ * gains, payouts and allocation. Loaded before app.js, which calls into it.
+ */
 'use strict';
 
 const investmentKinds = [

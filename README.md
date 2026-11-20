@@ -172,6 +172,18 @@ Set these in `.env`.
 
 Folio sends nothing to third parties. The one outside request is optional: the currency converter asks [Frankfurter](https://frankfurter.dev) for an exchange rate, from your browser, when you use it.
 
+## Documentation
+
+| Document | For |
+| --- | --- |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | How Folio works: source map, request flow, data model, security model, build |
+| [docs/API.md](docs/API.md) | Every HTTP endpoint, with request and response shapes |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Development setup, code style, the CI pipeline, releases |
+| [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | How we treat each other (Contributor Covenant 2.1) |
+| [SUPPORT.md](SUPPORT.md) | Where to ask for help |
+| [SECURITY.md](SECURITY.md) | Reporting vulnerabilities and running Folio safely |
+| [CHANGELOG.md](CHANGELOG.md) | What changed in each release |
+
 ## Project layout
 
 ```

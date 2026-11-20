@@ -1,3 +1,8 @@
+/*
+ * Sign-in layer: checks the session, signs in with a password or passkey (WebAuthn), forces the temporary
+ * password change, manages passkeys, then loads investments.js and app.js. Exposes window.Folio.api().
+ * Bundled with @simplewebauthn/browser by scripts/build.mjs.
+ */
 import {startAuthentication,startRegistration,browserSupportsWebAuthn} from '@simplewebauthn/browser';
 
 const byId=id=>document.getElementById(id);

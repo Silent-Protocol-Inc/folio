@@ -1,3 +1,7 @@
+/*
+ * Build: bundles server/index.js with the HTML, CSS, font and images embedded into dist/server/index.js,
+ * and bundles public/auth.js with @simplewebauthn/browser. Run with `npm run build`.
+ */
 import {build} from 'esbuild';
 import {rm} from 'node:fs/promises';
 

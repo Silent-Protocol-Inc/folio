@@ -1,3 +1,7 @@
+/*
+ * Minimal D1-style adapter over node:sqlite: prepare().bind().first()/all()/run(), and batch() in one
+ * transaction. Keeps server/index.js independent of the database driver.
+ */
 export function bind(sqlite){
  const statement=(sql,values=[])=>({
   bind(...args){return statement(sql,args);},

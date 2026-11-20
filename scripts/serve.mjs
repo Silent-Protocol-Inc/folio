@@ -1,3 +1,9 @@
+/*
+ * Entry point: `node --env-file=.env scripts/serve.mjs` (npm start).
+ * Validates FOLIO_ORIGIN and PORT, opens the database, adapts Node HTTP requests to the fetch-style handler
+ * in dist/server/index.js, and listens on FOLIO_HOST (127.0.0.1 unless set). The client IP comes only from
+ * the X-Folio-Client-IP header set by the reverse proxy.
+ */
 import { createServer } from 'node:http';
 import { isIP } from 'node:net';
 import { Readable } from 'node:stream';

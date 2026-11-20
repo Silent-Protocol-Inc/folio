@@ -1,5 +1,5 @@
 # Folio needs Node.js 24 (node:sqlite). Data goes in the /data volume; the app listens on PORT (default 4173).
-FROM node:24-slim
+FROM node:26-slim
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund

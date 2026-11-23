@@ -83,6 +83,17 @@ test('account: sign in, forced password change, workspace round trip', async () 
   const changed = await call('/api/password', { method: 'POST', body: { currentPassword: temporary, newPassword: 'ci-folio-password-1' } });
   assert.equal(changed.status, 200);
   keepCookie(changed);
+  assert.equal((await changed.clone().json()).user.role, 'owner', 'the first account administers workspace accounts');
+
+  const created = await call('/api/accounts', { method: 'POST', body: { email: 'member@example.com', role: 'member', password: 'ci-folio-password-1' } });
+  assert.equal(created.status, 201, 'an owner can create a member account');
+  const createdBody = await created.json();
+  assert.equal(createdBody.account.role, 'member');
+  assert.ok(createdBody.temporaryPassword);
+  const accountList = await (await call('/api/accounts')).json();
+  assert.equal(accountList.accounts.length, 2);
+  const ownerId = accountList.accounts.find((account) => account.email === 'ci@example.com').id;
+  assert.equal((await call('/api/accounts/' + ownerId, { method: 'PUT', body: { role: 'member', password: 'ci-folio-password-1' } })).status, 400, 'an owner cannot remove their own owner role');
 
   const passkeyOptions = await call('/api/passkeys/login/options', { method: 'POST', body: {} });
   assert.equal(passkeyOptions.status, 200, 'discoverable passkey sign-in does not require an email');
@@ -109,6 +120,11 @@ test('account: sign in, forced password change, workspace round trip', async () 
   sourced.accounts[0].categoryId = 'cash-category';
   sourced.accounts[0].groupId = 'wallets';
   assert.equal(admissibleWorkspace(sourced), true, 'optional asset categories and subcategories are accepted');
+  sourced.unassignedCashAssignment = { categoryId: 'cash-category', groupId: 'wallets' };
+  assert.equal(admissibleWorkspace(sourced), true, 'aggregate unassigned cash can use a managed category and subcategory');
+  sourced.unassignedCashAssignment.groupId = 'missing';
+  assert.equal(admissibleWorkspace(sourced), false, 'unassigned cash cannot reference a missing subcategory');
+  sourced.unassignedCashAssignment.groupId = 'wallets';
   sourced.accounts[0].groupId = 'missing';
   assert.equal(admissibleWorkspace(sourced), false, 'asset records cannot reference a missing subcategory');
   sourced.accounts[0].groupId = 'wallets';

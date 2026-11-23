@@ -48,7 +48,7 @@ function holdingValue(holding) {
   return holding.mark && units > 0 ? round(units * holding.mark.price * holding.mark.rate) : null;
 }
 
-export function assetCategoryRows(categories, groups, accounts, transactions, investments, throughDate) {
+export function assetCategoryRows(categories, groups, accounts, transactions, investments, throughDate, unassignedAssignment = {}) {
   const result = categories.map(category => ({ ...category, total: 0, entries: [], groups: [] }));
   const byId = new Map(result.map(category => [category.id, category]));
   const byType = new Map();
@@ -88,7 +88,11 @@ export function assetCategoryRows(categories, groups, accounts, transactions, in
     .filter(item => item.date <= throughDate)
     .reduce((total, item) => total + signedBase(item), 0);
   const unassigned = round(liquid - assigned);
-  if (unassigned) add(categoryFor('', 'cash'), null, { id: 'legacy:unassigned', name: 'Unassigned cash', value: unassigned, source: 'legacy' });
+  if (unassigned) {
+    const category = categoryFor(unassignedAssignment.categoryId, 'cash');
+    const group = groupById.get(unassignedAssignment.groupId);
+    add(category, group?.categoryId === category.id ? group : null, { id: 'legacy:unassigned', name: 'Unassigned cash', value: unassigned, source: 'legacy' });
+  }
   const legacyGroups = new Map();
   for (const holding of investments) {
     const type = holding.kind === 'crypto' || holding.kind === 'stock' ? holding.kind : 'investment';

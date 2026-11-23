@@ -62,7 +62,8 @@ const readBootstrap=env=>{
  const parsed=JSON.parse(env.FOLIO_BOOTSTRAP_USERS??'{}');
  return Object.fromEntries(Object.entries(parsed).filter(([email,hash])=>verifyEmail(email)&&savedHash(hash)));
 };
-const accountView=user=>({email:user.email,mustChange:Boolean(user.must_change)});
+const roles=['owner','member'];
+const accountView=user=>({email:user.email,role:user.role??'owner',mustChange:Boolean(user.must_change)});
 const strongPassword=value=>isPassword(value)&&value.length>=8;
 const sessionResponse=(user,token)=>json({user:accountView(user)},200,{'Set-Cookie':sessionCookie(token)});
 
@@ -93,7 +94,7 @@ async function findSession(request,db) {
  const token=request.headers.get('cookie')?.split(';').map(part=>part.trim()).find(part=>part.startsWith(cookieName+'='))?.slice(cookieName.length+1);
  if(!validToken(token))return null;
  const key=await fingerprint(token);
- return prepare(db,'SELECT a.id,a.email,a.must_change,a.auth_epoch,s.token_hash FROM folio_sessions s JOIN folio_accounts a ON a.id=s.account_id WHERE s.token_hash=? AND s.expires>? AND s.auth_epoch=a.auth_epoch',key,now()).first();
+ return prepare(db,'SELECT a.id,a.email,a.role,a.must_change,a.auth_epoch,s.token_hash FROM folio_sessions s JOIN folio_accounts a ON a.id=s.account_id WHERE s.token_hash=? AND s.expires>? AND s.auth_epoch=a.auth_epoch',key,now()).first();
 }
 const sessionStatement=(db,tokenHash,user)=>prepare(db,'INSERT INTO folio_sessions(token_hash,account_id,auth_epoch,expires) VALUES(?,?,?,?)',tokenHash,user.id,user.auth_epoch,now()+sessionAge);
 async function createSession(db,user){
@@ -118,7 +119,7 @@ async function login(request,env) {
  const email=emailOf(submitted);
  if(!verifyEmail(email)||!isPassword(password))return fault('Check your email and password.',401);
  if(!await guardRate(request,db,'password',email,6))return tryLater();
- let user=await prepare(db,'SELECT id,email,password_hash,must_change,auth_epoch FROM folio_accounts WHERE email=?',email).first();
+ let user=await prepare(db,'SELECT id,email,password_hash,role,must_change,auth_epoch FROM folio_accounts WHERE email=?',email).first();
  const bootstrapUsers=readBootstrap(env);
  const bootstrap=Object.hasOwn(bootstrapUsers,email)?bootstrapUsers[email]:null;
  const dummy=Object.values(bootstrapUsers)[0];
@@ -128,8 +129,9 @@ async function login(request,env) {
  if(!verified||(!user&&!bootstrap))return fault('Check your email and password.',401);
  if(!user){
   const id=await idForEmail(email);
-  await prepare(db,'INSERT OR IGNORE INTO folio_accounts(id,email,password_hash) VALUES(?,?,?)',id,email,bootstrap).run();
-  user=await prepare(db,'SELECT id,email,password_hash,must_change,auth_epoch FROM folio_accounts WHERE id=?',id).first();
+  const first=await prepare(db,'SELECT COUNT(*) AS count FROM folio_accounts').first();
+  await prepare(db,'INSERT OR IGNORE INTO folio_accounts(id,email,password_hash,role) VALUES(?,?,?,?)',id,email,bootstrap,first.count===0?'owner':'member').run();
+  user=await prepare(db,'SELECT id,email,password_hash,role,must_change,auth_epoch FROM folio_accounts WHERE id=?',id).first();
   if(user.password_hash!==bootstrap)return fault('Check your email and password.',401);
  }
  return createSession(db,user);
@@ -178,7 +180,7 @@ async function passkeyLogin(request,db,rpID,origin){
  const data=await input(request);
  const attempt=await assertion(db,data.id,'login');
  if(!attempt)return fault('The passkey request expired. Try again.',401);
- const row=await prepare(db,'SELECT k.*,a.email,a.must_change,a.auth_epoch,a.id FROM folio_passkeys k JOIN folio_accounts a ON a.id=k.account_id WHERE k.credential_id=?',String(data.response?.id??'')).first();
+ const row=await prepare(db,'SELECT k.*,a.email,a.role,a.must_change,a.auth_epoch,a.id FROM folio_passkeys k JOIN folio_accounts a ON a.id=k.account_id WHERE k.credential_id=?',String(data.response?.id??'')).first();
  if(!row||row.must_change)return fault('This passkey could not sign you in.',401);
  try {
   const verified=await verifyAuthenticationResponse({
@@ -230,6 +232,84 @@ async function workspace(request,db,session){
  const row=await prepare(db,'UPDATE folio_accounts SET workspace=?,revision=revision+1 WHERE id=? AND revision=? AND auth_epoch=? RETURNING revision',stored,session.id,data.revision,session.auth_epoch).first();
  return row?json(row):fault('Your workspace changed in another window. Reload Folio before saving again.',409);
 }
+function financialSnapshot(workspace){
+ const rows=Array.isArray(workspace?.transactions)?workspace.transactions:[];
+ const operational=rows.filter(row=>!row.balanceAdjustment);
+ const income=operational.filter(row=>row.type==='income').reduce((total,row)=>total+row.amount*row.rate,0);
+ const expense=operational.filter(row=>row.type==='expense').reduce((total,row)=>total+row.amount*row.rate,0);
+ return {currency:workspace?.currency,transactionCount:rows.length,income,expense,
+  expenseByCategory:Object.fromEntries([...new Set(operational.filter(row=>row.type==='expense').map(row=>row.category))].map(category=>[category,operational.filter(row=>row.type==='expense'&&row.category===category).reduce((total,row)=>total+row.amount*row.rate,0)])),
+  budgets:(workspace?.budgets??[]).map(row=>({category:row.category,amount:row.amount*row.rate})),
+  debts:(workspace?.debts??[]).map(row=>({direction:row.direction,amount:row.amount*row.rate,due:row.due||null})),
+  subscriptions:(workspace?.subscriptions??[]).filter(row=>row.status==='active').map(row=>({amount:row.amount*row.rate,cycle:row.cycle,due:row.due})),
+  goals:(workspace?.goals??[]).map(row=>({title:row.title,target:row.amount*row.rate,saved:(row.contributions??[]).reduce((total,item)=>total+item.amount*row.rate,0),due:row.due||null})),
+  investments:(workspace?.investments??[]).map(row=>({kind:row.kind,account:row.account,activityCount:(row.activity??[]).length,valuation:row.mark?row.mark.price*row.mark.rate:null}))};
+}
+const adviceRules='Return JSON only: {"summary":string,"actions":[{"type":"budget","category":string,"amount":number,"reason":string}],"watchlist":[string]}. Give educational planning guidance, not a trade instruction. Budget actions must use only supplied expense categories and positive amounts.';
+async function providerAdvice(provider,snapshot,env){
+ const prompt=adviceRules+' Financial snapshot (aggregate only): '+JSON.stringify(snapshot);
+ if(provider==='codex'){
+  if(!env.FOLIO_OPENAI_API_KEY)return null;
+  const response=await fetch('https://api.openai.com/v1/responses',{method:'POST',headers:{Authorization:'Bearer '+env.FOLIO_OPENAI_API_KEY,'Content-Type':'application/json'},body:JSON.stringify({model:env.FOLIO_CODEX_MODEL||'gpt-6-luna',store:false,input:prompt})});
+  if(!response.ok)throw Error('Codex advice is temporarily unavailable.');
+  const body=await response.json();
+  return body.output_text??body.output?.flatMap(item=>item.content??[]).map(item=>item.text??'').join('');
+ }
+ if(!env.FOLIO_ANTHROPIC_API_KEY)return null;
+ const response=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'x-api-key':env.FOLIO_ANTHROPIC_API_KEY,'anthropic-version':'2023-06-01','Content-Type':'application/json'},body:JSON.stringify({model:env.FOLIO_CLAUDE_MODEL||'claude-haiku-4-5',max_tokens:700,messages:[{role:'user',content:prompt}]})});
+ if(!response.ok)throw Error('Claude advice is temporarily unavailable.');
+ const body=await response.json();
+ return body.content?.map(item=>item.text??'').join('');
+}
+function validAdvice(value,snapshot){
+ if(!value||typeof value.summary!=='string'||!Array.isArray(value.actions)||!Array.isArray(value.watchlist))return null;
+ const categories=new Set(Object.keys(snapshot.expenseByCategory));
+ const actions=value.actions.filter(action=>action&&action.type==='budget'&&categories.has(action.category)&&Number.isFinite(action.amount)&&action.amount>0&&typeof action.reason==='string').slice(0,6).map(action=>({type:'budget',category:action.category,amount:Math.round(action.amount*100)/100,reason:action.reason.slice(0,500)}));
+ return {summary:value.summary.slice(0,1500),actions,watchlist:value.watchlist.filter(item=>typeof item==='string').slice(0,8).map(item=>item.slice(0,500))};
+}
+async function advice(request,db,session,env){
+ const {provider}=await input(request,8192);
+ if(!['codex','claude'].includes(provider))return fault('Choose Codex or Claude.');
+ if(!await guardRate(request,db,'advice',session.id,4))return tryLater();
+ const row=await prepare(db,'SELECT workspace FROM folio_accounts WHERE id=? AND auth_epoch=?',session.id,session.auth_epoch).first();
+ const snapshot=financialSnapshot(row?.workspace?JSON.parse(row.workspace):{});
+ const result=await providerAdvice(provider,snapshot,env);
+ if(!result)return fault(provider==='codex'?'Codex advice is not configured.':'Claude advice is not configured.',503);
+ try{const parsed=JSON.parse(result.replace(/^```json\s*|\s*```$/g,''));const parsedAdvice=validAdvice(parsed,snapshot);return parsedAdvice?json({provider,advice:parsedAdvice}):fault('The provider returned an invalid proposal.',502);}catch{return fault('The provider returned an invalid proposal.',502);}
+}
+const requireOwner=session=>session.role==='owner';
+async function accounts(request,db,session){
+ if(!requireOwner(session))return fault('Only an owner can manage workspace accounts.',403);
+ if(request.method==='GET'){
+  const {results}=await prepare(db,'SELECT id,email,role,must_change,revision FROM folio_accounts ORDER BY email').all();
+  return json({accounts:results.map(account=>({id:account.id,email:account.email,role:account.role,mustChange:Boolean(account.must_change),revision:account.revision}))});
+ }
+ const {email:submitted,role,password}=await input(request,8192),email=emailOf(submitted);
+ if(!verifyEmail(email)||!roles.includes(role)||!isPassword(password))return fault('Enter a valid email, role, and your current password.');
+ if(!await guardRate(request,db,'account-create',session.id,4))return tryLater();
+ const owner=await prepare(db,'SELECT password_hash FROM folio_accounts WHERE id=? AND auth_epoch=?',session.id,session.auth_epoch).first();
+ if(!owner||!await checkPassword(password,owner.password_hash))return fault('The current password is incorrect.',401);
+ if(await prepare(db,'SELECT 1 FROM folio_accounts WHERE email=?',email).first())return fault('That email already has an account.',409);
+ const temporary=randomToken(18),hash=await hashPassword(temporary),id=await idForEmail(email);
+ await prepare(db,'INSERT INTO folio_accounts(id,email,password_hash,role) VALUES(?,?,?,?)',id,email,hash,role).run();
+ return json({account:{id,email,role,mustChange:true},temporaryPassword:temporary},201);
+}
+async function accountRole(request,db,session,id){
+ if(!requireOwner(session))return fault('Only an owner can manage workspace accounts.',403);
+ const {role,password}=await input(request,8192);
+ if(!roles.includes(role)||!isPassword(password))return fault('Choose a valid role and enter your current password.');
+ const owner=await prepare(db,'SELECT password_hash FROM folio_accounts WHERE id=? AND auth_epoch=?',session.id,session.auth_epoch).first();
+ if(!owner||!await checkPassword(password,owner.password_hash))return fault('The current password is incorrect.',401);
+ if(id===session.id&&role!=='owner')return fault('You cannot remove your own owner role.');
+ const target=await prepare(db,'SELECT role FROM folio_accounts WHERE id=?',id).first();
+ if(!target)return fault('Account not found.',404);
+ if(target.role==='owner'&&role==='member'){
+  const count=await prepare(db,"SELECT COUNT(*) AS count FROM folio_accounts WHERE role='owner'").first();
+  if(count.count<2)return fault('Keep at least one owner account.',409);
+ }
+ const changed=await prepare(db,'UPDATE folio_accounts SET role=? WHERE id=? RETURNING id,email,role',role,id).first();
+ return changed?json({account:changed}):fault('Account not found.',404);
+}
 async function api(request,env,path){
  const {DB:db}=env;
  if(!db)return fault('Folio storage is temporarily unavailable.',503);
@@ -250,6 +330,9 @@ async function api(request,env,path){
  if(method==='POST'&&path==='/api/password')return changePassword(request,db,session);
  if(session.must_change)return fault('Change your temporary password first.',403);
  if((method==='GET'||method==='PUT')&&path==='/api/workspace')return workspace(request,db,session);
+ if(method==='POST'&&path==='/api/advice')return advice(request,db,session,env);
+ if((method==='GET'||method==='POST')&&path==='/api/accounts')return accounts(request,db,session);
+ if(method==='PUT'&&path.startsWith('/api/accounts/'))return accountRole(request,db,session,path.slice('/api/accounts/'.length));
  if(method==='GET'&&path==='/api/passkeys'){
   const {results}=await prepare(db,'SELECT credential_id AS id,name,created_at AS created,used_at AS used FROM folio_passkeys WHERE account_id=? ORDER BY created_at DESC',session.id).all();
   return json({passkeys:results});

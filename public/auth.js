@@ -135,10 +135,12 @@ async function openSecurity(message=''){
   '<button type="button" class="btn" id="security-password">Change password</button></section>'+
   '<section class="settings-block"><h3>Passkeys</h3><p class="form-note">Use Face ID, a fingerprint, or a security key to sign in.</p>'+
   '<button type="button" class="btn" id="security-enroll">Add passkey</button><div id="security-keys" class="security-key-number" aria-live="polite"><small>Loading passkeys…</small></div></section>'+
+  (user.role==='owner'?'<section class="settings-block"><h3>Workspace accounts</h3><p class="form-note">Create member accounts and manage who can administer this workspace.</p><button type="button" class="btn" id="security-accounts">Manage accounts</button></section>':'')+
   '<section class="settings-block"><button type="button" class="btn" id="security-logout">Sign out</button><p class="error" role="alert" hidden></p></section>');
  const list=byId('security-keys');
  byId('security-password').onclick=showPassword;
  byId('security-enroll').onclick=showEnrollment;
+ if(user.role==='owner')byId('security-accounts').onclick=showAccounts;
  byId('security-logout').onclick=async event=>{
   const button=event.currentTarget;
   button.disabled=true;
@@ -153,6 +155,18 @@ async function openSecurity(message=''){
    (key.used?' · Used '+escape(keyDate(key.used)):'')+'</small></div><button type="button" class="btn danger" data-remove-key="'+escape(key.id)+'">Remove</button></div>').join('')||'<small>No passkeys enrolled yet.</small>';
   for(const button of list.querySelectorAll('[data-remove-key]'))button.onclick=()=>showRemove(passkeys.find(key=>key.id===button.dataset.removeKey));
  }catch(error){if(list.isConnected)list.textContent=error.message;}
+}
+async function showAccounts(message=''){
+ securityPage('Workspace accounts','<p class="form-note">Owners can create accounts and manage roles. Each person has a separate private workspace.</p>'+(message?'<p class="form-note" role="status">'+escape(message)+'</p>':'')+'<div id="security-accounts-list"><small>Loading accounts…</small></div><div class="form-actions"><button type="button" class="btn" data-security-back>Back</button><button type="button" class="btn primary" id="security-account-add">Create account</button></div>');
+ modal.querySelector('[data-security-back]').onclick=()=>void openSecurity();
+ byId('security-account-add').onclick=showCreateAccount;
+ try{const {accounts}=await api('accounts');const list=byId('security-accounts-list');if(!list.isConnected)return;list.innerHTML=accounts.map(account=>'<div class="list-item"><div class="row-main"><strong>'+escape(account.email)+'</strong><small>'+escape(account.role)+(account.mustChange?' · password setup pending':'')+'</small></div>'+(account.id===user.id?'':'<button type="button" class="btn" data-account-role="'+escape(account.id)+'">Change role</button>')+'</div>').join('');for(const button of list.querySelectorAll('[data-account-role]'))button.onclick=()=>showRole(accounts.find(account=>account.id===button.dataset.accountRole));}catch(error){const list=byId('security-accounts-list');if(list)list.textContent=error.message;}
+}
+function showCreateAccount(){
+ securityForm('Create workspace account','<p class="form-note wide">The new person receives a temporary password. Share it once through a secure channel.</p><label>Email<input name="email" type="email" autocomplete="off" required maxlength="254"></label><label>Role<select name="role"><option value="member">Member</option><option value="owner">Owner</option></select></label><div class="wide">'+passwordInput('Your current password','password','current-password')+'</div>','Create account',async values=>{const result=await api('accounts',{email:values.email,role:values.role,password:values.password});securityPage('Account created','<p class="form-note">Copy this temporary password now. It will not be shown again.</p><div class="history"><strong>'+escape(result.account.email)+'</strong><p><code>'+escape(result.temporaryPassword)+'</code></p></div><div class="form-actions"><button type="button" class="btn primary" data-security-back>Done</button></div>');modal.querySelector('[data-security-back]').onclick=()=>void showAccounts('Account created.');});
+}
+function showRole(account){
+ securityForm('Change role','<p class="form-note wide">Change '+escape(account.email)+' to an owner or member.</p><label class="wide">Role<select name="role"><option value="owner"'+(account.role==='owner'?' selected':'')+'>Owner</option><option value="member"'+(account.role==='member'?' selected':'')+'>Member</option></select></label><div class="wide">'+passwordInput('Your current password','password','current-password')+'</div>','Save role',async values=>{await api('accounts/'+encodeURIComponent(account.id),{role:values.role,password:values.password},'PUT');await showAccounts('Role updated.');});
 }
 function securityForm(title,body,submitLabel,operation){
  securityPage(title,'<form id="security-form"><input name="email" type="email" autocomplete="username" value="'+escape(user.email)+'" hidden><div class="form-grid">'+body+'</div>'+errorLine+formActions(submitLabel)+'</form>');

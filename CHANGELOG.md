@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+## 1.5.0 (2026-11-23)
+
+- Overview now calls the total **Account balance**, shows balanced category cards at tablet widths, and adds a review-before-apply AI financial-plan panel.
+- Owners can create workspace accounts and assign owner/member roles from Security; the last owner is protected from demotion.
+- AI planning reads aggregate transaction, budget, debt, subscription, goal, and investment figures only when the user chooses Codex or Claude. Applying a proposal creates or updates only the proposed budgets.
+
+## 1.4.2 (2026-11-23)
+
+- Manage Structure can assign aggregate unassigned cash to any managed category and optional subcategory without rewriting legacy transactions.
+- Assigned categories and subcategories cannot be deleted until unassigned cash is moved or returned to automatic grouping.
+- Existing workspaces remain valid and continue using the automatic Cash category until an assignment is saved.
+
 ## 1.4.1 (2026-11-23)
 
 - Docker deployments built from owner-only checkouts now assign application files to the unprivileged runtime user, preventing a startup crash when the host uses `umask 077`.

@@ -193,10 +193,7 @@ async function passkeyLogin(request,db,rpID,origin){
 }
 async function passkeyEnrollOptions(request,db,session,rpID){
  if(!await guardRate(request,db,'enroll',session.id,6))return tryLater();
- const {password}=await input(request,8192);
- if(!isPassword(password))return fault('Enter your current password.');
- const account=await prepare(db,'SELECT password_hash FROM folio_accounts WHERE id=? AND auth_epoch=?',session.id,session.auth_epoch).first();
- if(!account||!await checkPassword(password,account.password_hash))return fault('The current password is incorrect.',401);
+ await input(request,8192);
  const {results}=await accountKeys(db,session.id);
  if(results.length>=10)return fault('Remove a passkey before adding another.');
  const options=await generateRegistrationOptions({

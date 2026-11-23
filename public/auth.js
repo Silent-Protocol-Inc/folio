@@ -81,6 +81,7 @@ login.addEventListener('submit',event=>{
  event.preventDefault();
  const values=formValues(login);
  void runForm(login,event.submitter,async()=>{
+  if(!values.email||!values.password)throw Error('Enter your email and password.');
   const result=await api('login',values);
   login.reset();
   await enter(result.user);
@@ -176,10 +177,10 @@ function showPassword(){
 }
 function showEnrollment(){
  securityForm('Add passkey','<p class="form-note wide">Name the passkey so you can recognize it later. Your device will ask you to confirm.</p>'+
-  '<label>Passkey name<input name="name" maxlength="64" placeholder="e.g. iPhone"></label>'+passwordInput('Current password','password','current-password'),
+  '<label class="wide">Passkey name<input name="name" maxlength="64" placeholder="For example, iPhone…"></label>',
   'Create passkey',async values=>{
    if(!browserSupportsWebAuthn())throw Error('This browser does not support passkeys.');
-   const {id,options}=await api('passkeys/enroll/options',{password:values.password});
+   const {id,options}=await api('passkeys/enroll/options',{});
    const response=await startRegistration({optionsJSON:options});
    await api('passkeys/enroll/verify',{id,response,name:values.name});
    await openSecurity('Passkey added.');

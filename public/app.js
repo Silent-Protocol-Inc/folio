@@ -14,6 +14,9 @@ const allCategories = [...new Set([...incomeCategories,...expenseCategories])];
 const sources = ['Person','Online lender','Bank','Credit card','Other'];
 const cycles = {weekly:'Weekly',monthly:'Monthly',yearly:'Yearly'};
 const accountTypes = [['bank','Bank'],['emoney','E-money'],['cash','Cash'],['other','Other liquid account']];
+const assetCategoryTypes = [['bank','Bank'],['cash','Cash'],['emoney','E-wallet'],['crypto','Cryptocurrency'],['stock','Stock'],['investment','Other investment'],['other','Other liquid asset']];
+const liquidCategoryTypes = new Set(['bank','cash','emoney','other']);
+const investmentCategoryTypes = new Set(['crypto','stock','investment']);
 const icons = {
  investment:'<path d="M3 4v16h18M6 14l5-5 4 3 5-6m-5 0h5v5"/>',
  dashboard:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
@@ -87,10 +90,12 @@ const totals = list => ({income:sum(operational(list).filter(x=>x.type==='income
 const cashBalanceThrough = date => window.Folio.balance.cashBalanceThrough(state.transactions,date);
 
 function blank() {
- return {version:1,demo:false,currency:'IDR',reportRate:1,reportDate:'',accounts:[],transactions:[],debts:[],subscriptions:[],goals:[],budgets:[],investments:[]};
+ return {version:1,demo:false,currency:'IDR',reportRate:1,reportDate:'',assetCategories:[],assetGroups:[],accounts:[],transactions:[],debts:[],subscriptions:[],goals:[],budgets:[],investments:[]};
 }
 let state=window.Folio.workspace??blank();
 state.accounts??=[];
+state.assetCategories??=[];
+state.assetGroups??=[];
 let toastTimer;
 function toast(text) {
  const element=$('#toast');
@@ -105,7 +110,7 @@ async function save(next,message,close=false) {
  const submit=form?.querySelector('button[type=submit]');
  if(submit)submit.disabled=true;
  try{
-  const {revision}=await window.Folio.api('workspace',{workspace:{...next,demo:false,accounts:next.accounts??[],investments:next.investments??[]},revision:window.Folio.revision},'PUT');
+  const {revision}=await window.Folio.api('workspace',{workspace:{...next,demo:false,assetCategories:next.assetCategories??[],assetGroups:next.assetGroups??[],accounts:next.accounts??[],investments:next.investments??[]},revision:window.Folio.revision},'PUT');
   window.Folio.revision=revision;
   state=next;
   if(close&&modal.open&&(!form||form.isConnected))modal.close();
@@ -209,8 +214,8 @@ function overview() {
  const metrics=[['Income',selected.income,'up','green'],['Expenses',selected.expense,'down','pink'],['Debt to pay',debt,'debt','orange'],['Goal savings',saved,'goal','blue']];
  const privacy=iconButton('toggle-values',valuesHidden?'Show total value':'Hide total value',valuesHidden?'eye':'eye-off');
  return title('Overview','A clear view of where your money stands.',monthControl())+
- '<section class="hero" aria-label="Total tracked value"><div class="hero-art" aria-hidden="true"></div><span class="hero-corner">'+safe(state.currency)+'</span>'+
- '<div class="hero-copy"><div class="hero-label">'+icon('wallet')+'Total tracked value '+privacy+'</div><div class="hero-value">'+safe(dashboardReport(total))+'</div><div class="hero-breakdown"><span>Liquid '+safe(dashboardReport(balance))+'</span><span>Investments '+safe(dashboardReport(market))+'</span></div><div class="hero-foot">'+chip((net>=0?'+':'')+report(net))+'<span>Cash flow in '+safe(monthLabel(month,true))+'</span>'+button('balance-adjustment',state.transactions.length?'Adjust balance':'Set opening balance','','text-button')+'</div></div></section>'+
+ '<section class="hero" aria-label="Tracked cash balance"><div class="hero-art" aria-hidden="true"></div><span class="hero-corner">'+safe(state.currency)+'</span>'+
+ '<div class="hero-copy"><div class="hero-label">'+icon('wallet')+'Tracked cash balance '+privacy+'</div><div class="hero-value">'+safe(dashboardReport(total))+'</div><div class="hero-breakdown"><span>Cash and accounts '+safe(dashboardReport(balance))+'</span><span>Investments '+safe(dashboardReport(market))+'</span></div><div class="hero-foot">'+chip((net>=0?'+':'')+report(net))+'<span>Cash flow in '+safe(monthLabel(month,true))+'</span>'+button('balance-adjustment',state.transactions.length?'Adjust balance':'Set opening balance','','text-button')+'</div></div></section>'+
  assetSourceOverview(month+'-31')+
  '<div class="metrics">'+metrics.map(([label,value,symbol,tone])=>'<div class="metric">'+blockIcon(symbol,tone)+'<div><small>'+label+'</small><b>'+safe(report(value))+'</b></div></div>').join('')+'</div>'+
  '<div class="split">'+cashChart()+spendingChart(list,selected.expense)+'</div><div class="split">'+
@@ -219,12 +224,13 @@ function overview() {
 }
 
 function assetSourceOverview(throughDate) {
- const accounts=window.Folio.assets.liquidAccountBalances(state.accounts,state.transactions,throughDate);
- const rows=accounts.map(account=>'<div class="asset-source"><span>'+safe(account.name)+'<small>Liquid · '+safe(accountTypes.find(([type])=>type===account.type)?.[1]||'Other')+'</small></span><b>'+safe(dashboardReport(account.balance))+'</b></div>');
- const unassigned=round(cashBalanceThrough(throughDate)-sum(accounts,account=>account.balance));
- if(unassigned)rows.push('<div class="asset-source"><span>Unassigned cash<small>Legacy transactions</small></span><b>'+safe(dashboardReport(unassigned))+'</b></div>');
- for(const row of portfolio().rows.filter(item=>item.units>0))rows.push('<div class="asset-source"><span>'+safe(row.holding.name)+'<small>Investment · '+safe(investmentKindLabel.get(row.holding.kind)||'Other')+'</small></span><b>'+safe(row.market===null?'No valuation':dashboardReport(row.market))+'</b></div>');
- return section('Value sources','Liquid accounts and priced investments in '+state.currency,rows.length?'<div class="asset-sources">'+rows.join('')+'</div>':empty('Add a money source or investment to build your total.'),button('settings','Manage sources','','text-button'));
+ const categories=window.Folio.assets.assetCategoryRows(state.assetCategories,state.assetGroups,state.accounts,state.transactions,state.investments??[],throughDate);
+ const entry=row=>'<div class="asset-entry"><span>'+safe(row.name)+'</span><b>'+safe(row.value===null?'No valuation':dashboardReport(row.value))+'</b></div>';
+ const rows=categories.map(category=>{
+  const groups=category.groups.map(group=>'<div class="asset-subcategory"><div class="asset-subcategory-title"><span>'+safe(group.name)+'</span><b>'+safe(dashboardReport(group.total))+'</b></div>'+group.entries.map(entry).join('')+'</div>').join('');
+  return '<section class="asset-category"><div class="asset-category-title"><div><small>Category</small><h3>'+safe(category.name)+'</h3></div><strong>'+safe(dashboardReport(category.total))+'</strong></div>'+category.entries.map(entry).join('')+groups+'</section>';
+ }).join('');
+ return section('Balance by category','Accounts, wallets, brokers, and holdings in '+state.currency,rows?'<div class="asset-categories">'+rows+'</div>':empty('Add a category, money source, or investment to build your balance.'),button('settings','Manage structure','','text-button'));
 }
 
 const optionList=(options,selected)=>options.map(option=>{
@@ -310,11 +316,11 @@ async function fetchRate(from,to,date='') {
 const converter={amount:'1',from:'USD',to:'IDR',manual:'',showManual:false,quote:null,error:''};
 let conversionRun=0;
 const digits='min="0.000000000001" max="100000000000000" step="any"';
-const field=(label,name,val='',type='text',attrs='',style='')=>'<label class="'+style+'">'+safe(label)+'<input name="'+name+'" type="'+type+'" value="'+safe(val)+'" '+attrs+'></label>';
+const field=(label,name,val='',type='text',attrs='',style='')=>'<label class="'+style+'">'+safe(label)+'<input name="'+name+'" type="'+type+'" value="'+safe(val)+'" autocomplete="off" '+attrs+'></label>';
 const select=(label,name,options,chosen,attrs='',style='')=>'<label class="'+style+'">'+safe(label)+'<select name="'+name+'" '+attrs+'>'+optionList(options,chosen)+'</select></label>';
 const amountField=(label,val='',max=100000000000000)=>field(label,'amount',val,'number','min="0.01" max="'+max+'" step="0.01" inputmode="decimal" required');
 const dateField=(label,name,val='',required=false,max='9999-12-31')=>field(label,name,val,'date','min="1900-01-01" max="'+max+'" '+(required?'required':''));
-const notesField=val=>'<label class="wide">Notes<textarea name="note" maxlength="2000" placeholder="Optional">'+safe(val)+'</textarea></label>';
+const notesField=val=>'<label class="wide">Notes<textarea name="note" maxlength="2000" autocomplete="off" placeholder="Optional">'+safe(val)+'</textarea></label>';
 const readForm=form=>Object.fromEntries(new FormData(form));
 function currencyConverter() {
  return title('Currency converter','Convert between 29 currencies using a dated reference rate or your own rate.')+
@@ -416,11 +422,75 @@ function balanceAdjustment() {
  form.addEventListener('input',draw);draw();
 }
 
+const categoryBy=(id,db=state)=>db.assetCategories?.find(category=>category.id===id);
+const assetGroupBy=(id,db=state)=>db.assetGroups?.find(group=>group.id===id);
+const categoriesFor=types=>state.assetCategories.filter(category=>types.has(category.type));
+const groupChoices=categoryId=>[['','No subcategory'],...state.assetGroups.filter(group=>group.categoryId===categoryId).map(group=>[group.id,group.name])];
+const assignmentFields=(types,categoryId='',groupId='')=>select('Category','categoryId',[['','Automatic category'],...categoriesFor(types).map(category=>[category.id,category.name])],categoryId,'','wide')+
+ select('Subcategory','groupId',groupChoices(categoryId),groupId,categoryId?'':'disabled','wide');
+function adaptAssignment(form,types,syncType=false) {
+ const categorySelect=form.elements.categoryId, groupSelect=form.elements.groupId;
+ const draw=()=>{
+  const category=categoryBy(categorySelect.value);
+  groupSelect.innerHTML=optionList(groupChoices(category?.id),groupSelect.value);
+  groupSelect.disabled=!category;
+  if(syncType&&category&&liquidCategoryTypes.has(category.type))form.elements.type.value=category.type;
+ };
+ categorySelect.addEventListener('change',()=>{groupSelect.value='';draw();});draw();
+}
+function assetCategoryForm(id) {
+ const existing=categoryBy(id);
+ const linked=existing&&(state.accounts.some(item=>item.categoryId===id)||state.investments.some(item=>item.categoryId===id)||state.assetGroups.some(item=>item.categoryId===id));
+ const fields=field('Category name','name',existing?.name??'','text','maxlength="120" required','wide')+
+  select('Category type','type',assetCategoryTypes,existing?.type??'bank',linked?'disabled':'','wide');
+ const remove=existing?button('asset-category-delete','Delete category','','btn danger',attr(existing)):'';
+ formModal(existing?'Edit category':'Add category',fields,existing?'Save changes':'Add category',event=>{
+  const values=readForm(event.target), name=values.name.trim(), type=existing&&linked?existing.type:values.type;
+  if(!name)return feedback('Enter a category name.');
+  if(!assetCategoryTypes.some(([value])=>value===type))return feedback('Choose a valid category type.');
+  const saved={id:existing?.id??uid(),name,type};
+  update(next=>{
+   const index=next.assetCategories.findIndex(item=>item.id===saved.id);
+   if(index<0)next.assetCategories.push(saved);else next.assetCategories[index]=saved;
+  },existing?'Category updated.':'Category added.');
+ },remove);
+}
+function removeAssetCategory(id) {
+ const category=categoryBy(id);
+ if(!category)return;
+ if(state.assetGroups.some(item=>item.categoryId===id)||state.accounts.some(item=>item.categoryId===id)||state.investments.some(item=>item.categoryId===id))return feedback('Move or delete this category’s subcategories and entries first.');
+ confirmAction('Delete category?','Delete '+category.name+'?','Delete category',()=>update(next=>{next.assetCategories=next.assetCategories.filter(item=>item.id!==id);},'Category deleted.'));
+}
+function assetGroupForm(id) {
+ const existing=assetGroupBy(id);
+ if(!existing&&!state.assetCategories.length)return feedback('Add a category before adding a subcategory.');
+ const fields=field('Subcategory name','name',existing?.name??'','text','maxlength="120" required','wide')+
+  select('Parent category','categoryId',state.assetCategories.map(category=>[category.id,category.name]),existing?.categoryId??state.assetCategories[0]?.id,existing?'disabled':'','wide');
+ const remove=existing?button('asset-group-delete','Delete subcategory','','btn danger',attr(existing)):'';
+ formModal(existing?'Edit subcategory':'Add subcategory',fields,existing?'Save changes':'Add subcategory',event=>{
+  const values=readForm(event.target), name=values.name.trim(), categoryId=existing?.categoryId??values.categoryId;
+  if(!name)return feedback('Enter a subcategory name.');
+  if(!categoryBy(categoryId))return feedback('Choose a valid parent category.');
+  const saved={id:existing?.id??uid(),categoryId,name};
+  update(next=>{
+   const index=next.assetGroups.findIndex(item=>item.id===saved.id);
+   if(index<0)next.assetGroups.push(saved);else next.assetGroups[index]=saved;
+  },existing?'Subcategory updated.':'Subcategory added.');
+ },remove);
+}
+function removeAssetGroup(id) {
+ const group=assetGroupBy(id);
+ if(!group)return;
+ if(state.accounts.some(item=>item.groupId===id)||state.investments.some(item=>item.groupId===id))return feedback('Move or delete this subcategory’s entries first.');
+ confirmAction('Delete subcategory?','Delete '+group.name+'?','Delete subcategory',()=>update(next=>{next.assetGroups=next.assetGroups.filter(item=>item.id!==id);},'Subcategory deleted.'));
+}
+
 function accountForm(id) {
  const existing=state.accounts.find(account=>account.id===id);
  const account=existing??{name:'',type:'bank'};
  const fields=field('Source name','name',account.name,'text','maxlength="120" required autofocus','wide')+
   select('Type','type',accountTypes,account.type,'','wide')+
+  assignmentFields(liquidCategoryTypes,account.categoryId,account.groupId)+
   (existing?'':field('Opening balance in '+state.currency,'opening','','number','min="-100000000000000" max="100000000000000" step="0.01" inputmode="decimal" placeholder="Optional"','wide'));
  const remove=existing?button('account-delete','Delete source','','btn danger',attr(existing)):'';
  formModal(existing?'Edit money source':'Add money source',fields,existing?'Save changes':'Add source',event=>{
@@ -428,7 +498,9 @@ function accountForm(id) {
   if(!name)return feedback('Enter a source name.');
   if(!accountTypes.some(([type])=>type===values.type))return feedback('Choose a valid source type.');
   if(!Number.isFinite(opening)||Math.abs(opening)>100000000000000)return feedback('Enter a valid opening balance.');
-  const saved={id:existing?.id||uid(),name,type:values.type};
+  const category=categoryBy(values.categoryId), group=assetGroupBy(values.groupId);
+  if(group&&group.categoryId!==category?.id)return feedback('Choose a subcategory inside the selected category.');
+  const saved={id:existing?.id||uid(),name,type:category?.type??values.type,...(category?{categoryId:category.id}:{}),...(group?{groupId:group.id}:{})};
   update(next=>{
    const index=next.accounts.findIndex(item=>item.id===saved.id);
    if(index<0)next.accounts.push(saved);else next.accounts[index]=saved;
@@ -439,6 +511,7 @@ function accountForm(id) {
    });
   },existing?'Money source updated.':'Money source added.');
  },remove);
+ adaptAssignment($('#modal-form',modal),liquidCategoryTypes,true);
 }
 
 function removeAccount(id) {
@@ -640,10 +713,16 @@ function remindersModal() {
 }
 function settings() {
  const sourceRows=state.accounts.map(account=>'<div class="list-item"><div class="row-main"><strong>'+safe(account.name)+'</strong><small>'+safe(accountTypes.find(([type])=>type===account.type)?.[1]||'Liquid account')+'</small></div>'+iconButton('account-edit','Edit '+account.name,'edit',attr(account))+'</div>').join('');
+ const structureRows=state.assetCategories.map(category=>{
+  const groups=state.assetGroups.filter(group=>group.categoryId===category.id).map(group=>'<div class="asset-structure-group"><div class="row-main"><strong>'+safe(group.name)+'</strong><small>Subcategory</small></div>'+iconButton('asset-group-edit','Edit '+group.name,'edit',attr(group))+'</div>').join('');
+  const type=assetCategoryTypes.find(([value])=>value===category.type)?.[1]??'Other';
+  return '<div class="asset-structure-category"><div class="list-item"><div class="row-main"><strong>'+safe(category.name)+'</strong><small>'+safe(type)+'</small></div>'+iconButton('asset-category-edit','Edit '+category.name,'edit',attr(category))+'</div>'+groups+'</div>';
+ }).join('');
  openModal('Settings','<section class="settings-block"><h3>Reporting currency</h3><p class="form-note">Dashboard totals use this currency. Each record keeps its original amount and exchange rate.</p><form id="settings-currency" class="form-grid">'+
  select('Currency','currency',currencies,state.currency)+field('IDR per 1 unit (optional)','manual',state.currency==='IDR'?'':state.reportRate,'number',digits)+
  '<p class="wide form-note">Leave the rate blank to use the latest Frankfurter reference rate.</p><button type="submit" class="btn primary wide">Save reporting currency</button><p class="error wide" hidden role="alert"></p></form></section>'+
- '<section class="settings-block"><div class="panel-title"><div><h3>Money sources</h3><p class="form-note">Bank, e-money, and cash balances are derived from their transactions. Investments stay in the portfolio.</p></div>'+button('account-add','Add source','plus')+'</div>'+sourceRows+(state.accounts.length?'':empty('No money sources yet. Legacy cash remains included in your total.'))+'<div class="cluster">'+button('balance-adjustment',state.transactions.length?'Adjust a balance':'Set opening balance','wallet')+'</div></section>'+
+ '<section class="settings-block"><div class="panel-title"><div><h3>Balance structure</h3><p class="form-note">Create optional categories and subcategories for banks, wallets, brokers, and exchanges.</p></div></div>'+structureRows+(state.assetCategories.length?'':empty('No custom categories yet. Existing records use automatic categories.'))+'<div class="cluster">'+button('asset-category-add','Add category','plus')+button('asset-group-add','Add subcategory')+'</div></section>'+
+ '<section class="settings-block"><div class="panel-title"><div><h3>Money sources</h3><p class="form-note">Bank, e-wallet, and cash balances come from their linked transactions.</p></div>'+button('account-add','Add source','plus')+'</div>'+sourceRows+(state.accounts.length?'':empty('No money sources yet. Legacy cash remains included in your total.'))+'<div class="cluster">'+button('balance-adjustment',state.transactions.length?'Adjust a balance':'Set opening balance','wallet')+'</div></section>'+
  '<section class="settings-block"><h3>Data and backups</h3><p class="form-note">Your records are saved to this Folio account. Export a backup any time.</p><div class="cluster">'+button('backup','Export backup','download')+button('restore','Import backup')+(legacyWorkspace()?button('legacy-import','Import old browser records'):'')+'</div></section>'+
  '<section class="settings-block"><h3>Account</h3><p class="form-note">Manage your password, passkeys, and sign-in session.</p>'+button('security','Security','settings')+'</section>');
  const form=$('#settings-currency',modal);
@@ -669,8 +748,14 @@ const validLead=value=>Number.isInteger(value)&&value>=0&&value<=365;
 const validRow=item=>item&&validText(item.id)&&item.id.length>0&&validText(item.title)&&item.title.length>0&&validText(item.note)&&currencies.includes(item.currency)&&validAmount(item.amount)&&validAmount(item.rate);
 function validBackup(db) {
  if(!db||db.version!==1||db.demo!==false||!currencies.includes(db.currency)||!validAmount(db.reportRate)||(db.reportDate&&!validDate(db.reportDate)))return false;
+ const categories=db.assetCategories??[], groups=db.assetGroups??[];
+ if(!Array.isArray(categories)||categories.length>20000||categories.some(category=>!validText(category?.id)||!category.id.length||!validText(category.name)||!category.name.length||!assetCategoryTypes.some(([type])=>type===category.type))||new Set(categories.map(category=>category.id)).size!==categories.length)return false;
+ const categoryIds=new Set(categories.map(category=>category.id));
+ if(!Array.isArray(groups)||groups.length>20000||groups.some(group=>!validText(group?.id)||!group.id.length||!validText(group.name)||!group.name.length||!categoryIds.has(group.categoryId))||new Set(groups.map(group=>group.id)).size!==groups.length)return false;
+ const groupById=new Map(groups.map(group=>[group.id,group.categoryId]));
  const accounts=db.accounts??[];
- if(!Array.isArray(accounts)||accounts.length>20000||accounts.some(account=>!validText(account?.id)||!account.id.length||!validText(account.name)||!account.name.length||!accountTypes.some(([type])=>type===account.type))||new Set(accounts.map(account=>account.id)).size!==accounts.length)return false;
+ if(!Array.isArray(accounts)||accounts.length>20000||accounts.some(account=>!validText(account?.id)||!account.id.length||!validText(account.name)||!account.name.length||!accountTypes.some(([type])=>type===account.type)||
+  (account.categoryId!==undefined&&!categoryIds.has(account.categoryId))||(account.groupId!==undefined&&groupById.get(account.groupId)!==account.categoryId))||new Set(accounts.map(account=>account.id)).size!==accounts.length)return false;
  const accountIds=new Set(accounts.map(account=>account.id));
  if(!Object.values(collections).every(group=>Array.isArray(db[group])&&db[group].length<=20000&&db[group].every(validRow)&&new Set(db[group].map(row=>row.id)).size===db[group].length))return false;
  return db.transactions.every(x=>validDate(x.date)&&['income','expense'].includes(x.type)&&(x.balanceAdjustment===true?x.category==='Balance adjustment':x.balanceAdjustment===undefined&&allCategories.includes(x.category))&&validText(x.account)&&(!x.accountId||accountIds.has(x.accountId))&&
@@ -679,7 +764,7 @@ function validBackup(db) {
    Array.isArray(x.payments)&&x.payments.every(entry=>validAmount(entry?.amount)&&validDate(entry.date)&&(!entry.txId||validText(entry.txId)))&&round(sum(x.payments,entry=>entry.amount))<=x.amount)&&
   db.subscriptions.every(x=>validDate(x.due)&&Object.hasOwn(cycles,x.cycle)&&['active','paused'].includes(x.status)&&validLead(x.lead)&&(!x.anchor||(Number.isInteger(x.anchor)&&x.anchor>=1&&x.anchor<=31)))&&
   db.goals.every(x=>(!x.due||validDate(x.due))&&Array.isArray(x.contributions)&&x.contributions.every(entry=>Number.isFinite(entry?.amount)&&validAmount(Math.abs(entry.amount))&&validDate(entry.date))&&savings(x)>=0)&&
-  db.budgets.every(x=>expenseCategories.includes(x.category))&&validInvestments(db.investments);
+  db.budgets.every(x=>expenseCategories.includes(x.category))&&validInvestments(db.investments,categoryIds,groupById);
 }
 async function importBackup(event) {
  const file=event.target.files[0];event.target.value='';
@@ -689,6 +774,8 @@ async function importBackup(event) {
   const next=JSON.parse(await file.text());
   if(!validBackup(next))throw Error('Invalid backup');
   next.accounts??=[];
+  next.assetCategories??=[];
+  next.assetGroups??=[];
   next.investments??=[];
   confirmAction('Restore this backup?','This replaces your current workspace with the records in '+file.name+'.','Restore backup',()=>save(next,'Backup restored.',true));
  } catch {feedback('This file is not a valid Folio backup.');}
@@ -698,6 +785,8 @@ function legacyWorkspace() {
   const legacy=JSON.parse(localStorage.getItem(storageKey));
   if(!validBackup(legacy))return null;
   legacy.accounts??=[];
+  legacy.assetCategories??=[];
+  legacy.assetGroups??=[];
   legacy.investments??=[];
   const hasEntries=Object.values(collections).some(group=>legacy[group].length)||legacy.investments.length;
   return hasEntries?legacy:null;
@@ -773,6 +862,12 @@ document.addEventListener('click',event=>{
   case 'period':monthDialog();break;
   case 'reminders':remindersModal();break;
   case 'settings':settings();break;
+  case 'asset-category-add':assetCategoryForm();break;
+  case 'asset-category-edit':assetCategoryForm(id);break;
+  case 'asset-category-delete':removeAssetCategory(id);break;
+  case 'asset-group-add':assetGroupForm();break;
+  case 'asset-group-edit':assetGroupForm(id);break;
+  case 'asset-group-delete':removeAssetGroup(id);break;
   case 'account-add':accountForm();break;
   case 'account-edit':accountForm(id);break;
   case 'account-delete':removeAccount(id);break;

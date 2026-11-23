@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 1.4.0 (2026-11-23)
+
+- Asset hierarchy: create, rename, and remove optional categories and subcategories for banks, cash, e-wallets, exchanges, brokers, stocks, cryptocurrency, and other holdings.
+- Grouped overview: the tracked cash balance now shows each source under its category and optional provider subcategory while preserving one global-currency total.
+- Flexible positions: stocks and cryptocurrency can start from either asset quantity plus unit price or a total position value in the reporting currency.
+- Passkey enrollment no longer asks for the current password; authenticated sessions use device user verification, and discoverable sign-in is independent of the email and password fields.
+- Backward compatibility: existing workspaces without category or subcategory references continue to load and receive automatic grouping.
+
 ## 1.3.0 (2026-11-23)
 
 - Tracked assets: create bank, e-money, cash, or other liquid sources; balances derive from linked transactions and auditable corrections.

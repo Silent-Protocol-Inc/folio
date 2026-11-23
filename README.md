@@ -24,7 +24,7 @@
 ## Features
 
 - **Transactions and cash flow:** sort by date, value or name; set opening balances; record auditable corrections; and track income and expenses per source and category.
-- **Tracked assets:** separate bank, e-money and cash sources, then see their balances together with priced stocks, crypto and other holdings in one global reporting currency.
+- **Tracked assets:** organize banks, cash, e-wallets, exchanges, brokers, stocks, crypto and other holdings with optional categories and subcategories, then see every source and one total in the global reporting currency.
 - **Budgets:** monthly limits per category, with what is left at a glance.
 - **Debts:** money you owe and money owed to you, with payments, due dates and reminders.
 - **Subscriptions:** weekly, monthly and yearly renewals, paused or active, with upcoming payments.

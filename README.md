@@ -155,6 +155,10 @@ Set these in `.env`.
 | `FOLIO_HOST` | `127.0.0.1` | Listen address. The Docker image sets `0.0.0.0` inside the container and publishes the port on the host's `127.0.0.1` only. |
 | `FOLIO_UID` / `FOLIO_GID` | `1000` | Docker: user the container runs as; it must own `FOLIO_DATA_DIR`. |
 | `FOLIO_IMAGE` | `ghcr.io/silent-protocol-inc/folio:latest` | Docker: image to run, for example a pinned version such as `:1.1.0`. |
+| `FOLIO_OPENAI_API_KEY` / `FOLIO_CODEX_MODEL` | none / `gpt-6-luna` | Optional Codex financial-plan provider. Keep the key in an owner-only `.env`; Folio sends an aggregate snapshot only after the user presses Ask Codex. |
+| `FOLIO_ANTHROPIC_API_KEY` / `FOLIO_CLAUDE_MODEL` | none / `claude-haiku-4-5` | Optional Claude financial-plan provider. Keep the key in an owner-only `.env`; Folio sends an aggregate snapshot only after the user presses Ask Claude. |
+
+AI credentials are server-only. Do not put them in a browser, backup, database, GitHub secret scan output, issue, PR, or committed `.env` file. Copy `.env.example` to `.env`, set only the provider(s) you intend to use, then `chmod 600 .env`. When neither provider key is set, Folio returns “not configured” and sends no financial data.
 
 ## Backups and upgrades
 

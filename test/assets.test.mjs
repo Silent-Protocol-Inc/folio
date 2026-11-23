@@ -92,3 +92,18 @@ test('asset hierarchy keeps legacy sources visible without mutating old backups'
   assert.deepEqual(result.map((category) => [category.name, category.total]), [['E-wallet', 250_000]]);
   assert.equal(result[0].entries[0].name, 'DANA');
 });
+
+test('asset hierarchy places aggregate unassigned cash in its managed category and subcategory', () => {
+  const categories = [{ id: 'cash', name: 'Cash', type: 'cash' }];
+  const groups = [{ id: 'wallets', categoryId: 'cash', name: 'Wallets' }];
+  const transactions = [tx('1', '2026-11-01', 'Legacy opening', 'income', 450_000)];
+  const assignment = { categoryId: 'cash', groupId: 'wallets' };
+
+  const result = assetCategoryRows(categories, groups, [], transactions, [], '2026-11-30', assignment);
+  assert.equal(result.length, 1);
+  assert.equal(result[0].entries.length, 0);
+  assert.deepEqual(result[0].groups[0].entries, [{
+    id: 'legacy:unassigned', name: 'Unassigned cash', value: 450_000, source: 'legacy',
+  }]);
+  assert.equal(result[0].groups[0].total, 450_000);
+});

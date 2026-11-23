@@ -29,9 +29,11 @@ export function admissibleWorkspace(state){
  const categoryIds=new Set(categories.map(row=>row?.id));
  const groups=state?.assetGroups??[];
  const groupById=new Map(groups.map(row=>[row?.id,row?.categoryId]));
+ const unassigned=state?.unassignedCashAssignment;
  return state?.version===1&&state.demo===false&&coded(state.currency)&&positive(state.reportRate)&&(!state.reportDate||dated(state.reportDate))&&
   list(categories,row=>id(row.id)&&text(row.name)&&categoryTypes.includes(row.type))&&categoryIds.size===categories.length&&
   list(groups,row=>id(row.id)&&text(row.name)&&id(row.categoryId)&&categoryIds.has(row.categoryId))&&groupById.size===groups.length&&
+  (unassigned===undefined||(unassigned&&typeof unassigned==='object'&&categoryIds.has(unassigned.categoryId)&&optionalId(unassigned.groupId)&&(!unassigned.groupId||groupById.get(unassigned.groupId)===unassigned.categoryId)))&&
   list(accounts,row=>id(row.id)&&text(row.name)&&['bank','emoney','cash','other'].includes(row.type)&&optionalId(row.categoryId)&&optionalId(row.groupId)&&
    (!row.categoryId||categoryIds.has(row.categoryId))&&(!row.groupId||(groupById.has(row.groupId)&&groupById.get(row.groupId)===row.categoryId)))&&accountIds.size===accounts.length&&
   list(state.transactions,row=>general(row)&&dated(row.date)&&['income','expense'].includes(row.type)&&text(row.account)&&text(row.category)&&

@@ -54,6 +54,7 @@ Each account row holds the whole workspace as one JSON document plus a `revision
   "version": 1, "demo": false, "currency": "IDR", "reportRate": 1, "reportDate": "",
   "assetCategories": [{ "id", "name", "type": "bank|cash|emoney|crypto|stock|investment|other" }],
   "assetGroups":     [{ "id", "categoryId", "name" }],
+  "unassignedCashAssignment": { "categoryId", "groupId?" },
   "accounts":      [{ "id", "name", "type": "bank|emoney|cash|other", "categoryId?", "groupId?" }],
   "transactions":  [{ "id", "date", "type": "income|expense", "title", "amount", "currency", "rate", "account", "accountId?", "category", "note", "balanceAdjustment?": true }],
   "budgets":       [{ "id", "title", "category", "amount", "currency", "rate" }],
@@ -67,6 +68,8 @@ Each account row holds the whole workspace as one JSON document plus a `revision
 `rate` converts an entry's own currency to IDR; `currency` and `reportRate` select the global display currency. Optional categories and subcategories organize liquid accounts and investment holdings without changing their calculations. Liquid account balances are derived from transactions linked by `accountId`; there is no second editable balance. Existing unlinked transactions remain part of total liquid cash. A transaction with `balanceAdjustment: true` is a dated opening-balance or correction record: it changes tracked cash but is excluded from operational income, expense, budget, spending and cash-flow reporting. A directly entered stock or cryptocurrency position value is represented as one synthetic unit with a matching valuation, so later edits still use the normal holding model. All new hierarchy fields are optional, so existing version-1 workspaces and backups remain valid without a migration. Total tracked value combines liquid cash with priced investment holdings at presentation time. `docs/demo/demo-workspace.json` is a complete example.
 
 **Saving.** The browser sends `{ workspace, revision }`. The server stores it only if `revision` matches the stored value, then increments it (`UPDATE … WHERE revision = ?`). A stale tab gets `409` and must reload, so two windows can't silently overwrite each other. The JSON is capped at 1 MB and checked by `admissibleWorkspace()`; the browser runs a stricter `validBackup()` on imports.
+
+`unassignedCashAssignment` places the aggregate balance of transactions without an `accountId` in a managed category or subcategory. It changes presentation only and never rewrites the original transactions.
 
 ## Security model
 

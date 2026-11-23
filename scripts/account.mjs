@@ -17,9 +17,12 @@ try {
  const temporary = randomToken(18);
  const hash = await hashPassword(temporary);
  const id = await fingerprint('folio-account:' + email);
- const inserted = db.prepare('INSERT INTO folio_accounts (id,email,password_hash) VALUES (?,?,?) ON CONFLICT(email) DO NOTHING').run(id, email, hash);
+ const { count } = db.prepare('SELECT COUNT(*) AS count FROM folio_accounts').get();
+ const role = count === 0 ? 'owner' : 'member';
+ const inserted = db.prepare('INSERT INTO folio_accounts (id,email,password_hash,role) VALUES (?,?,?,?) ON CONFLICT(email) DO NOTHING').run(id, email, hash, role);
  if (!inserted.changes) throw Error('That account already exists.');
  console.log('Account: ' + email);
+ console.log('Role: ' + role);
  console.log('Temporary password (shown once): ' + temporary);
  console.log('The account must set a new password on first sign-in.');
 } catch (error) {

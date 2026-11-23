@@ -27,7 +27,7 @@ Folio's browser code talks to the server with JSON over HTTPS. The API is intern
 Who is signed in. Works without a session.
 
 ```json
-{ "user": { "email": "you@example.com", "mustChange": false } }
+{ "user": { "email": "you@example.com", "role": "owner", "mustChange": false } }
 ```
 
 `user` is `null` when signed out. `mustChange: true` means only `/api/password` and `/api/logout` are allowed until the password is changed.
@@ -71,6 +71,28 @@ Requires a session whose password is not temporary.
 ```
 
 Saves only if `revision` matches the stored one; returns `{ "revision": 5 }`. A stale revision returns `409`: reload, then save again. An invalid workspace returns `400`.
+
+## AI financial plan
+
+### `POST /api/advice`
+
+`{ "provider": "codex" }` or `{ "provider": "claude" }` generates an educational proposal from aggregate saved-workspace figures: transaction totals by expense category, budgets, debts, active subscriptions, goal progress, and investment valuations. It never writes the workspace. The browser shows the proposal and must receive an explicit user action before it writes the returned budget actions. Codex requests use `store: false`; provider API keys and model names are server-only environment variables.
+
+## Workspace accounts
+
+Only an `owner` may use these endpoints. Every account has a separate private workspace.
+
+### `GET /api/accounts`
+
+Lists account email, role, temporary-password status, and workspace revision.
+
+### `POST /api/accounts`
+
+`{ "email": "member@example.com", "role": "member", "password": "owner current password" }` creates an account and returns its one-time temporary password.
+
+### `PUT /api/accounts/:id`
+
+`{ "role": "owner", "password": "owner current password" }` changes an account role. Folio keeps at least one owner.
 
 ## Passkeys
 

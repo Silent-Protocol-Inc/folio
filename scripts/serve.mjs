@@ -22,7 +22,11 @@ const port = Number(process.env.PORT || '4173');
 const host = process.env.FOLIO_HOST || '127.0.0.1';
 if (!Number.isInteger(port) || port < 1 || port > 65535) throw Error('PORT must be between 1 and 65535.');
 const db = openDatabase();
-const env = { DB: bind(db), FOLIO_ORIGIN: site.origin };
+const env = { DB: bind(db), FOLIO_ORIGIN: site.origin,
+ FOLIO_OPENAI_API_KEY: process.env.FOLIO_OPENAI_API_KEY,
+ FOLIO_CODEX_MODEL: process.env.FOLIO_CODEX_MODEL,
+ FOLIO_ANTHROPIC_API_KEY: process.env.FOLIO_ANTHROPIC_API_KEY,
+ FOLIO_CLAUDE_MODEL: process.env.FOLIO_CLAUDE_MODEL };
 const server = createServer(async (req, res) => {
  try {
   if (!req.url?.startsWith('/') || req.url.startsWith('//')) {

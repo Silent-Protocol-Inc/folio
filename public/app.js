@@ -96,6 +96,7 @@ let state=window.Folio.workspace??blank();
 state.accounts??=[];
 state.assetCategories??=[];
 state.assetGroups??=[];
+let adviceProposal=null;
 let toastTimer;
 function toast(text) {
  const element=$('#toast');
@@ -214,9 +215,10 @@ function overview() {
  const metrics=[['Income',selected.income,'up','green'],['Expenses',selected.expense,'down','pink'],['Debt to pay',debt,'debt','orange'],['Goal savings',saved,'goal','blue']];
  const privacy=iconButton('toggle-values',valuesHidden?'Show total value':'Hide total value',valuesHidden?'eye':'eye-off');
  return title('Overview','A clear view of where your money stands.',monthControl())+
- '<section class="hero" aria-label="Tracked cash balance"><div class="hero-art" aria-hidden="true"></div><span class="hero-corner">'+safe(state.currency)+'</span>'+
- '<div class="hero-copy"><div class="hero-label">'+icon('wallet')+'Tracked cash balance '+privacy+'</div><div class="hero-value">'+safe(dashboardReport(total))+'</div><div class="hero-breakdown"><span>Cash and accounts '+safe(dashboardReport(balance))+'</span><span>Investments '+safe(dashboardReport(market))+'</span></div><div class="hero-foot">'+chip((net>=0?'+':'')+report(net))+'<span>Cash flow in '+safe(monthLabel(month,true))+'</span>'+button('balance-adjustment',state.transactions.length?'Adjust balance':'Set opening balance','','text-button')+'</div></div></section>'+
+ '<section class="hero" aria-label="Account balance"><div class="hero-art" aria-hidden="true"></div><span class="hero-corner">'+safe(state.currency)+'</span>'+
+ '<div class="hero-copy"><div class="hero-label">'+icon('wallet')+'Account balance '+privacy+'</div><div class="hero-value">'+safe(dashboardReport(total))+'</div><div class="hero-breakdown"><span>Cash and accounts '+safe(dashboardReport(balance))+'</span><span>Investments '+safe(dashboardReport(market))+'</span></div><div class="hero-foot">'+chip((net>=0?'+':'')+report(net))+'<span>Cash flow in '+safe(monthLabel(month,true))+'</span>'+button('balance-adjustment',state.transactions.length?'Adjust balance':'Set opening balance','','text-button')+'</div></div></section>'+
  assetSourceOverview(month+'-31')+
+ aiRecommendation()+
  '<div class="metrics">'+metrics.map(([label,value,symbol,tone])=>'<div class="metric">'+blockIcon(symbol,tone)+'<div><small>'+label+'</small><b>'+safe(report(value))+'</b></div></div>').join('')+'</div>'+
  '<div class="split">'+cashChart()+spendingChart(list,selected.expense)+'</div><div class="split">'+
  section('Recent transactions','For '+monthLabel(month),list.sort(dateSort).slice(0,5).map(recentRow).join('')||empty('No transactions this month.'),link('transactions','View all'))+
@@ -224,13 +226,34 @@ function overview() {
 }
 
 function assetSourceOverview(throughDate) {
- const categories=window.Folio.assets.assetCategoryRows(state.assetCategories,state.assetGroups,state.accounts,state.transactions,state.investments??[],throughDate);
+ const categories=window.Folio.assets.assetCategoryRows(state.assetCategories,state.assetGroups,state.accounts,state.transactions,state.investments??[],throughDate,state.unassignedCashAssignment);
  const entry=row=>'<div class="asset-entry"><span>'+safe(row.name)+'</span><b>'+safe(row.value===null?'No valuation':dashboardReport(row.value))+'</b></div>';
  const rows=categories.map(category=>{
   const groups=category.groups.map(group=>'<div class="asset-subcategory"><div class="asset-subcategory-title"><span>'+safe(group.name)+'</span><b>'+safe(dashboardReport(group.total))+'</b></div>'+group.entries.map(entry).join('')+'</div>').join('');
   return '<section class="asset-category"><div class="asset-category-title"><div><small>Category</small><h3>'+safe(category.name)+'</h3></div><strong>'+safe(dashboardReport(category.total))+'</strong></div>'+category.entries.map(entry).join('')+groups+'</section>';
  }).join('');
  return section('Balance by category','Accounts, wallets, brokers, and holdings in '+state.currency,rows?'<div class="asset-categories">'+rows+'</div>':empty('Add a category, money source, or investment to build your balance.'),button('settings','Manage structure','','text-button'));
+}
+
+function aiRecommendation(){
+ const proposal=adviceProposal?.advice;
+ const body=!proposal?'<p class="form-note">Generate a private planning proposal from your transactions, budgets, debts, subscriptions, goals, and investments. Only aggregate financial figures are sent when you choose a provider.</p><div class="cluster">'+button('advice-codex','Ask Codex','','btn primary')+button('advice-claude','Ask Claude','','btn')+'</div>':
+  '<p>'+safe(proposal.summary)+'</p>'+(proposal.actions.length?'<div class="history">'+proposal.actions.map(action=>'<div class="list-item"><div class="row-main"><strong>'+safe(action.category)+' budget</strong><small>'+safe(action.reason)+'</small></div><b>'+safe(report(action.amount))+'</b></div>').join('')+'</div>'+button('advice-apply','Apply budget proposal','','btn primary'):'')+(proposal.watchlist.length?'<ul class="advice-watchlist">'+proposal.watchlist.map(item=>'<li>'+safe(item)+'</li>').join('')+'</ul>':'')+button('advice-clear','Generate another','','btn');
+ return section('AI financial plan','Educational guidance. Review every proposal before applying it.',body);
+}
+async function generateAdvice(provider){
+ adviceProposal={loading:true};render();
+ try{const result=await window.Folio.api('advice',{provider});adviceProposal=result;render();}
+ catch(error){adviceProposal=null;render();toast(error.message||'Could not generate advice.');}
+}
+function applyAdvice(){
+ const actions=adviceProposal?.advice?.actions??[];
+ if(!actions.length)return;
+ void update(next=>actions.forEach(action=>{
+  const existing=next.budgets.find(item=>item.category===action.category);
+  const row={id:existing?.id??uid(),title:action.category+' budget',category:action.category,amount:action.amount/next.reportRate,currency:next.currency,rate:next.reportRate,note:'AI proposal accepted '+today()};
+  if(existing)Object.assign(existing,row);else next.budgets.push(row);
+ }),actions.length===1?'Budget proposal applied.':'Budget proposals applied.').then(saved=>{if(saved)adviceProposal=null;});
 }
 
 const optionList=(options,selected)=>options.map(option=>{
@@ -458,7 +481,7 @@ function assetCategoryForm(id) {
 function removeAssetCategory(id) {
  const category=categoryBy(id);
  if(!category)return;
- if(state.assetGroups.some(item=>item.categoryId===id)||state.accounts.some(item=>item.categoryId===id)||state.investments.some(item=>item.categoryId===id))return feedback('Move or delete this category’s subcategories and entries first.');
+ if(state.unassignedCashAssignment?.categoryId===id||state.assetGroups.some(item=>item.categoryId===id)||state.accounts.some(item=>item.categoryId===id)||state.investments.some(item=>item.categoryId===id))return feedback('Move or delete this category’s subcategories and entries first.');
  confirmAction('Delete category?','Delete '+category.name+'?','Delete category',()=>update(next=>{next.assetCategories=next.assetCategories.filter(item=>item.id!==id);},'Category deleted.'));
 }
 function assetGroupForm(id) {
@@ -481,8 +504,25 @@ function assetGroupForm(id) {
 function removeAssetGroup(id) {
  const group=assetGroupBy(id);
  if(!group)return;
- if(state.accounts.some(item=>item.groupId===id)||state.investments.some(item=>item.groupId===id))return feedback('Move or delete this subcategory’s entries first.');
+ if(state.unassignedCashAssignment?.groupId===id||state.accounts.some(item=>item.groupId===id)||state.investments.some(item=>item.groupId===id))return feedback('Move or delete this subcategory’s entries first.');
  confirmAction('Delete subcategory?','Delete '+group.name+'?','Delete subcategory',()=>update(next=>{next.assetGroups=next.assetGroups.filter(item=>item.id!==id);},'Subcategory deleted.'));
+}
+
+function unassignedCashForm() {
+ if(!state.assetCategories.length)return feedback('Add a category before assigning unassigned cash.');
+ const assigned=state.unassignedCashAssignment??{};
+ const allTypes=new Set(assetCategoryTypes.map(([type])=>type));
+ const fields='<p class="form-note wide">This moves the aggregate balance from transactions without a money source. It does not change those transactions.</p>'+assignmentFields(allTypes,assigned.categoryId,assigned.groupId);
+ formModal('Assign unassigned cash',fields,'Save assignment',event=>{
+  const values=readForm(event.target);
+  if(values.categoryId&&!categoryBy(values.categoryId))return feedback('Choose a valid category.');
+  if(values.groupId&&assetGroupBy(values.groupId)?.categoryId!==values.categoryId)return feedback('Choose a valid subcategory.');
+  update(next=>{
+   if(values.categoryId)next.unassignedCashAssignment={categoryId:values.categoryId,...(values.groupId?{groupId:values.groupId}:{})};
+   else delete next.unassignedCashAssignment;
+  },values.categoryId?'Unassigned cash assigned.':'Automatic cash grouping restored.');
+ });
+ adaptAssignment($('#modal-form',modal),allTypes);
 }
 
 function accountForm(id) {
@@ -718,10 +758,14 @@ function settings() {
   const type=assetCategoryTypes.find(([value])=>value===category.type)?.[1]??'Other';
   return '<div class="asset-structure-category"><div class="list-item"><div class="row-main"><strong>'+safe(category.name)+'</strong><small>'+safe(type)+'</small></div>'+iconButton('asset-category-edit','Edit '+category.name,'edit',attr(category))+'</div>'+groups+'</div>';
  }).join('');
+ const unassignedTransactions=state.transactions.filter(item=>!item.accountId);
+ const assignedCategory=categoryBy(state.unassignedCashAssignment?.categoryId);
+ const assignedGroup=assetGroupBy(state.unassignedCashAssignment?.groupId);
+ const unassignedRow=unassignedTransactions.length?'<div class="list-item"><div class="row-main"><strong>Unassigned cash</strong><small>'+(assignedCategory?safe(assignedCategory.name+(assignedGroup?' · '+assignedGroup.name:'')):'Automatic cash category')+'</small></div>'+button('unassigned-cash-assign',assignedCategory?'Change assignment':'Assign','','btn')+'</div>':'';
  openModal('Settings','<section class="settings-block"><h3>Reporting currency</h3><p class="form-note">Dashboard totals use this currency. Each record keeps its original amount and exchange rate.</p><form id="settings-currency" class="form-grid">'+
  select('Currency','currency',currencies,state.currency)+field('IDR per 1 unit (optional)','manual',state.currency==='IDR'?'':state.reportRate,'number',digits)+
  '<p class="wide form-note">Leave the rate blank to use the latest Frankfurter reference rate.</p><button type="submit" class="btn primary wide">Save reporting currency</button><p class="error wide" hidden role="alert"></p></form></section>'+
- '<section class="settings-block"><div class="panel-title"><div><h3>Balance structure</h3><p class="form-note">Create optional categories and subcategories for banks, wallets, brokers, and exchanges.</p></div></div>'+structureRows+(state.assetCategories.length?'':empty('No custom categories yet. Existing records use automatic categories.'))+'<div class="cluster">'+button('asset-category-add','Add category','plus')+button('asset-group-add','Add subcategory')+'</div></section>'+
+ '<section class="settings-block"><div class="panel-title"><div><h3>Balance structure</h3><p class="form-note">Create optional categories and subcategories for banks, wallets, brokers, and exchanges.</p></div></div>'+unassignedRow+structureRows+(state.assetCategories.length?'':empty('No custom categories yet. Existing records use automatic categories.'))+'<div class="cluster">'+button('asset-category-add','Add category','plus')+button('asset-group-add','Add subcategory')+'</div></section>'+
  '<section class="settings-block"><div class="panel-title"><div><h3>Money sources</h3><p class="form-note">Bank, e-wallet, and cash balances come from their linked transactions.</p></div>'+button('account-add','Add source','plus')+'</div>'+sourceRows+(state.accounts.length?'':empty('No money sources yet. Legacy cash remains included in your total.'))+'<div class="cluster">'+button('balance-adjustment',state.transactions.length?'Adjust a balance':'Set opening balance','wallet')+'</div></section>'+
  '<section class="settings-block"><h3>Data and backups</h3><p class="form-note">Your records are saved to this Folio account. Export a backup any time.</p><div class="cluster">'+button('backup','Export backup','download')+button('restore','Import backup')+(legacyWorkspace()?button('legacy-import','Import old browser records'):'')+'</div></section>'+
  '<section class="settings-block"><h3>Account</h3><p class="form-note">Manage your password, passkeys, and sign-in session.</p>'+button('security','Security','settings')+'</section>');
@@ -753,6 +797,8 @@ function validBackup(db) {
  const categoryIds=new Set(categories.map(category=>category.id));
  if(!Array.isArray(groups)||groups.length>20000||groups.some(group=>!validText(group?.id)||!group.id.length||!validText(group.name)||!group.name.length||!categoryIds.has(group.categoryId))||new Set(groups.map(group=>group.id)).size!==groups.length)return false;
  const groupById=new Map(groups.map(group=>[group.id,group.categoryId]));
+ const unassigned=db.unassignedCashAssignment;
+ if(unassigned!==undefined&&(!unassigned||typeof unassigned!=='object'||!categoryIds.has(unassigned.categoryId)||(unassigned.groupId!==undefined&&groupById.get(unassigned.groupId)!==unassigned.categoryId)))return false;
  const accounts=db.accounts??[];
  if(!Array.isArray(accounts)||accounts.length>20000||accounts.some(account=>!validText(account?.id)||!account.id.length||!validText(account.name)||!account.name.length||!accountTypes.some(([type])=>type===account.type)||
   (account.categoryId!==undefined&&!categoryIds.has(account.categoryId))||(account.groupId!==undefined&&groupById.get(account.groupId)!==account.categoryId))||new Set(accounts.map(account=>account.id)).size!==accounts.length)return false;
@@ -868,10 +914,15 @@ document.addEventListener('click',event=>{
   case 'asset-group-add':assetGroupForm();break;
   case 'asset-group-edit':assetGroupForm(id);break;
   case 'asset-group-delete':removeAssetGroup(id);break;
+  case 'unassigned-cash-assign':unassignedCashForm();break;
   case 'account-add':accountForm();break;
   case 'account-edit':accountForm(id);break;
   case 'account-delete':removeAccount(id);break;
   case 'toggle-values':valuesHidden=!valuesHidden;localStorage.setItem(privacyKey,String(valuesHidden));render();break;
+  case 'advice-codex':void generateAdvice('codex');break;
+  case 'advice-claude':void generateAdvice('claude');break;
+  case 'advice-apply':applyAdvice();break;
+  case 'advice-clear':adviceProposal=null;render();break;
   case 'balance-adjustment':balanceAdjustment();break;
   case 'more':openModal('More','<nav aria-label="More pages"><div class="nav-group">'+[pageMap.get('investments'),pages[2],pages[4],pages[6]].map(item=>navLink(item)).join('')+'</div>'+button('settings','Settings','settings','side-link')+'</nav>');break;
   case 'close':modal.close();break;

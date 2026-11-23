@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 1.4.1 (2026-11-23)
+
+- Docker deployments built from owner-only checkouts now assign application files to the unprivileged runtime user, preventing a startup crash when the host uses `umask 077`.
+
 ## 1.4.0 (2026-11-23)
 
 - Asset hierarchy: create, rename, and remove optional categories and subcategories for banks, cash, e-wallets, exchanges, brokers, stocks, cryptocurrency, and other holdings.

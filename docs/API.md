@@ -78,7 +78,7 @@ Passkeys use WebAuthn through `@simplewebauthn`. Each flow has two calls: get op
 
 ### `POST /api/passkeys/login/options`
 
-`{ "email": "you@example.com" }` → `{ "id": "challenge id", "options": { … } }`
+`{}` → `{ "id": "challenge id", "options": { … } }`. The passkey is discoverable: the device presents matching Folio credentials and the selected credential identifies the account, so no email is required.
 
 ### `POST /api/passkeys/login/verify`
 

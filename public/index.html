@@ -26,12 +26,13 @@
     <p class="auth-error" role="alert" hidden></p>
     <button type="submit" class="btn primary auth-submit">Sign in <span aria-hidden="true">→</span></button>
     <div class="auth-divider"><span>or</span></div>
-    <button type="button" class="btn auth-passkey" id="passkey-login"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="10" r="4"/><path d="m11 13 8 8m-4-4 3-3m-1 5 3-3"/></svg>Sign in with a passkey</button>
+    <button type="button" class="btn auth-passkey" id="passkey-login" data-busy-label="Waiting for your device…"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="10" r="4"/><path d="m11 13 8 8m-4-4 3-3m-1 5 3-3"/></svg><span data-button-label>Sign in with a passkey</span></button>
    </form>
   </div>
   <div id="auth-change" hidden>
    <h2>Set a new password</h2><p>Replace your temporary password to open your workspace.</p>
    <form id="first-password-form">
+    <input id="change-email" name="email" type="email" autocomplete="username" hidden>
     <label>Temporary password<input name="currentPassword" type="password" autocomplete="current-password" required maxlength="128"></label>
     <label>New password<input name="newPassword" type="password" autocomplete="new-password" required minlength="8" maxlength="128"></label>
     <label>Confirm new password<input name="confirmation" type="password" autocomplete="new-password" required minlength="8" maxlength="128"></label>

@@ -52,7 +52,8 @@ Each account row holds the whole workspace as one JSON document plus a `revision
 ```jsonc
 {
   "version": 1, "demo": false, "currency": "IDR", "reportRate": 1, "reportDate": "",
-  "transactions":  [{ "id", "date", "type": "income|expense", "title", "amount", "currency", "rate", "account", "category", "note", "balanceAdjustment?": true }],
+  "accounts":      [{ "id", "name", "type": "bank|emoney|cash|other" }],
+  "transactions":  [{ "id", "date", "type": "income|expense", "title", "amount", "currency", "rate", "account", "accountId?", "category", "note", "balanceAdjustment?": true }],
   "budgets":       [{ "id", "title", "category", "amount", "currency", "rate" }],
   "debts":         [{ "id", "title", "source", "direction": "owe|owed", "amount", "due", "lead", "payments": [{ "date", "amount" }] }],
   "subscriptions": [{ "id", "title", "amount", "cycle": "weekly|monthly|yearly", "due", "status": "active|paused", "lead" }],
@@ -61,7 +62,7 @@ Each account row holds the whole workspace as one JSON document plus a `revision
 }
 ```
 
-`rate` converts an entry's own currency to the workspace currency. A transaction with `balanceAdjustment: true` is a dated opening-balance or correction record: it changes tracked cash but is excluded from operational income, expense, budget, spending and cash-flow reporting. The field is optional, so existing version-1 workspaces remain valid without a migration. `docs/demo/demo-workspace.json` is a complete example.
+`rate` converts an entry's own currency to IDR; `currency` and `reportRate` select the global display currency. Liquid account balances are derived from transactions linked by `accountId`; there is no second editable balance. Existing unlinked transactions remain part of total liquid cash. A transaction with `balanceAdjustment: true` is a dated opening-balance or correction record: it changes tracked cash but is excluded from operational income, expense, budget, spending and cash-flow reporting. `accounts` and `accountId` are optional, so existing version-1 workspaces remain valid without a migration. Total tracked value combines liquid cash with the existing priced investment holdings at presentation time. `docs/demo/demo-workspace.json` is a complete example.
 
 **Saving.** The browser sends `{ workspace, revision }`. The server stores it only if `revision` matches the stored value, then increments it (`UPDATE … WHERE revision = ?`). A stale tab gets `409` and must reload, so two windows can't silently overwrite each other. The JSON is capped at 1 MB and checked by `admissibleWorkspace()`; the browser runs a stricter `validBackup()` on imports.
 
@@ -69,7 +70,7 @@ Each account row holds the whole workspace as one JSON document plus a `revision
 
 - **Passwords:** Argon2id with a random 16-byte salt per password; comparison in constant time. Temporary passwords are 18 random bytes and must be changed before the workspace opens (`must_change`).
 - **Sessions:** a random 32-byte token in a `__Host-folio_session` cookie (`HttpOnly; Secure; SameSite=Strict`, 12 hours). Only its SHA-256 is stored. Changing the password bumps `auth_epoch`, which invalidates every other session at once.
-- **Passkeys (WebAuthn):** user verification required, resident keys, up to 10 per account. Challenges are single-use, expire after 5 minutes and, for enrolment, are bound to the session. Adding or removing a passkey needs the current password. Passkeys are bound to the hostname in `FOLIO_ORIGIN`.
+- **Passkeys (WebAuthn):** user verification required, resident keys, up to 10 per account. Sign-in is discoverable: the authenticator offers matching Folio credentials and the chosen credential resolves the account without an email. Challenges are single-use, expire after 5 minutes and, for enrolment, are bound to the session. Adding or removing a passkey needs the current password. Passkeys are bound to the hostname in `FOLIO_ORIGIN`.
 - **Rate limits:** sign-in, passkey, password-change, enrol and remove attempts are counted per IP and per IP+account in 10-minute windows (`folio_auth_limits`), answering `429` when exceeded.
 - **Cross-site requests:** writes need the exact `Origin`; cookies are `SameSite=Strict`.
 - **Headers:** a strict Content Security Policy (`default-src 'none'`, scripts and styles from self only, `connect-src` self plus the optional Frankfurter rate API), `no-store` caching for pages and API, `nosniff`, `no-referrer`, and a Permissions-Policy that allows only WebAuthn.

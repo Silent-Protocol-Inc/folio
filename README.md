@@ -23,14 +23,15 @@
 
 ## Features
 
-- **Transactions and cash flow:** set an opening balance, record auditable balance corrections, and track income and expenses per account and category with six-month and monthly reporting.
+- **Transactions and cash flow:** sort by date, value or name; set opening balances; record auditable corrections; and track income and expenses per source and category.
+- **Tracked assets:** separate bank, e-money and cash sources, then see their balances together with priced stocks, crypto and other holdings in one global reporting currency.
 - **Budgets:** monthly limits per category, with what is left at a glance.
 - **Debts:** money you owe and money owed to you, with payments, due dates and reminders.
 - **Subscriptions:** weekly, monthly and yearly renewals, paused or active, with upcoming payments.
 - **Savings goals:** targets, deadlines, deposits and withdrawals.
 - **Investments:** stocks, funds, bonds, gold, crypto and more, with cost basis, market value, realized and unrealized gain, and payouts.
 - **Multi-currency:** 29 currencies and a converter with dated reference rates or your own rate.
-- **Private by design:** one workspace per account, password and passkey sign-in, no third-party analytics. Your data stays in one SQLite file on your server.
+- **Private by design:** mask dashboard totals, sign in with a discoverable passkey without typing an email, and keep one private workspace in one SQLite file with no third-party analytics.
 - **Works on your phone:** add it to the home screen on iPhone or Android and it opens full screen.
 - **Backups:** JSON export and import per account, plus a script for checked daily database backups.
 

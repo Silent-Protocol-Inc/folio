@@ -167,23 +167,18 @@ function assertion(db,id,purpose,sessionHash=null){
 const accountKeys=(db,accountId)=>prepare(db,'SELECT credential_id,transports FROM folio_passkeys WHERE account_id=? ORDER BY created_at',accountId).all();
 const credentialList=rows=>rows.map(row=>({id:row.credential_id,transports:JSON.parse(row.transports)}));
 async function passkeyLoginOptions(request,db,rpID){
- const {email:submitted}=await input(request,8192);
- const email=emailOf(submitted);
- if(!verifyEmail(email))return fault('Enter your account email first.');
- if(!await guardRate(request,db,'passkey',email,12))return tryLater();
- const accountId=await idForEmail(email);
- const {results}=await accountKeys(db,accountId);
+ await input(request,8192);
+ if(!await guardRate(request,db,'passkey','discoverable',12))return tryLater();
  const options=await generateAuthenticationOptions({
-  rpID,userVerification:'required',timeout:120000,
-  allowCredentials:results.length?credentialList(results):[{id:randomToken()}]
+  rpID,userVerification:'required',timeout:120000
  });
- return challenge(db,accountId,'login',options);
+ return challenge(db,'','login',options);
 }
 async function passkeyLogin(request,db,rpID,origin){
  const data=await input(request);
  const attempt=await assertion(db,data.id,'login');
  if(!attempt)return fault('The passkey request expired. Try again.',401);
- const row=await prepare(db,'SELECT k.*,a.email,a.must_change,a.auth_epoch,a.id FROM folio_passkeys k JOIN folio_accounts a ON a.id=k.account_id WHERE k.credential_id=? AND k.account_id=?',String(data.response?.id??''),attempt.account_id).first();
+ const row=await prepare(db,'SELECT k.*,a.email,a.must_change,a.auth_epoch,a.id FROM folio_passkeys k JOIN folio_accounts a ON a.id=k.account_id WHERE k.credential_id=?',String(data.response?.id??'')).first();
  if(!row||row.must_change)return fault('This passkey could not sign you in.',401);
  try {
   const verified=await verifyAuthenticationResponse({

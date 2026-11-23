@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 1.3.0 (2026-11-23)
+
+- Tracked assets: create bank, e-money, cash, or other liquid sources; balances derive from linked transactions and auditable corrections.
+- Total tracked value: one dashboard total combines liquid balances with priced stocks, crypto, funds, and other existing investment holdings in the global reporting currency.
+- Source breakdown: the overview identifies every liquid source and open investment by category and type without duplicating portfolio data.
+- Transaction ordering: sort all matching transactions by date, value, or name in ascending or descending order.
+- Dashboard privacy: the eye control masks the total and source values and remembers the choice on that browser.
+- Passkey parity: discoverable passkeys now sign in without an email, matching the TableTap console flow while retaining required user verification and hostname binding.
+- Backward compatibility: version-1 workspaces and backups without liquid accounts or account links remain valid.
+
 ## 1.2.1 (2026-11-20)
 
 - iPhone home-screen app: the status bar is now solid and the header sits 12 px lower, so the logo and buttons stay clear of the notch and nothing scrolls behind the clock. Remove Folio from the home screen and add it again to pick up the change.

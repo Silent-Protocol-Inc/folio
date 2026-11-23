@@ -43,6 +43,10 @@ test('serves the app with security headers', async () => {
   assert.match(html, /rel="apple-touch-icon"/);
   assert.match(html, /rel="manifest"/);
   assert.match(html, /apple-mobile-web-app-status-bar-style" content="black"/, 'solid iOS status bar keeps the app below the notch');
+  const emailField = html.match(/<input name="email"[^>]+>/)?.[0] ?? '';
+  const passwordField = html.match(/<input id="login-password"[^>]+>/)?.[0] ?? '';
+  assert.doesNotMatch(emailField, /\brequired\b/, 'passkey sign-in is not blocked by the email field');
+  assert.doesNotMatch(passwordField, /\brequired\b/, 'passkey sign-in is not blocked by the password field');
 });
 
 test('home-screen icons and manifest are served and cacheable', async () => {
@@ -84,18 +88,30 @@ test('account: sign in, forced password change, workspace round trip', async () 
   assert.equal(passkeyOptions.status, 200, 'discoverable passkey sign-in does not require an email');
   const passkeyBody = await passkeyOptions.json();
   assert.deepEqual(passkeyBody.options.allowCredentials ?? [], [], 'the authenticator chooses the Folio account');
+  const enrollment = await call('/api/passkeys/enroll/options', { method: 'POST', body: {} });
+  assert.equal(enrollment.status, 200, 'an authenticated session can enroll a passkey without re-entering its password');
 
   const before = await (await call('/api/workspace')).json();
   const demo = JSON.parse(readFileSync(new URL('../docs/demo/demo-workspace.json', import.meta.url), 'utf8'));
   const legacy = structuredClone(demo);
-  legacy.transactions = legacy.transactions.filter((row) => !row.balanceAdjustment);
+  legacy.transactions = legacy.transactions.filter((row) => !row.balanceAdjustment).map(({ accountId, ...row }) => row);
   assert.equal(admissibleWorkspace(legacy), true, 'version-1 workspaces without adjustment markers remain valid');
   const sourced = structuredClone(legacy);
+  sourced.investments = [];
   sourced.accounts = [{ id: 'cash-1', name: 'Daily wallet', type: 'cash' }];
   sourced.transactions[0].accountId = 'cash-1';
   assert.equal(admissibleWorkspace(sourced), true, 'liquid accounts and linked transactions are accepted');
   sourced.transactions[0].accountId = 'missing';
   assert.equal(admissibleWorkspace(sourced), false, 'transactions cannot reference a missing liquid account');
+  sourced.transactions[0].accountId = 'cash-1';
+  sourced.assetCategories = [{ id: 'cash-category', name: 'Cash', type: 'cash' }];
+  sourced.assetGroups = [{ id: 'wallets', categoryId: 'cash-category', name: 'Wallets' }];
+  sourced.accounts[0].categoryId = 'cash-category';
+  sourced.accounts[0].groupId = 'wallets';
+  assert.equal(admissibleWorkspace(sourced), true, 'optional asset categories and subcategories are accepted');
+  sourced.accounts[0].groupId = 'missing';
+  assert.equal(admissibleWorkspace(sourced), false, 'asset records cannot reference a missing subcategory');
+  sourced.accounts[0].groupId = 'wallets';
   const saved = await call('/api/workspace', { method: 'PUT', body: { revision: before.revision, workspace: demo } });
   assert.equal(saved.status, 200);
   const { revision } = await saved.json();

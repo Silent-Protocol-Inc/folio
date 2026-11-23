@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { liquidAccountBalances, sortTransactions, trackedAssetTotal } from '../public/assets.js';
+import { assetCategoryRows, liquidAccountBalances, sortTransactions, trackedAssetTotal } from '../public/assets.js';
 
 const tx = (id, date, title, type, amount, accountId = '') => ({ id, date, title, type, amount, rate: 1, accountId });
 
@@ -39,4 +39,56 @@ test('tracked value combines liquid cash with priced investment market value', (
     activity: [{ id: 'buy', type: 'buy', date: '2026-11-01', quantity: 0.5, price: 100, fee: 0, rate: 16_000, note: '' }],
   }];
   assert.equal(trackedAssetTotal(accounts, rows, investments, '2026-11-30'), 962_000);
+});
+
+test('asset hierarchy groups liquid sources and investments under optional subcategories', () => {
+  const categories = [
+    { id: 'banking', name: 'Bank', type: 'bank' },
+    { id: 'cash', name: 'Cash', type: 'cash' },
+    { id: 'crypto', name: 'Cryptocurrency', type: 'crypto' },
+    { id: 'stock', name: 'Stock', type: 'stock' },
+  ];
+  const groups = [
+    { id: 'triv', categoryId: 'crypto', name: 'Triv' },
+    { id: 'gotrade', categoryId: 'stock', name: 'Gotrade' },
+  ];
+  const accounts = [
+    { id: 'blu', name: 'Bank Blu', type: 'bank', categoryId: 'banking' },
+    { id: 'wallet', name: 'Wallet', type: 'cash', categoryId: 'cash' },
+  ];
+  const transactions = [
+    tx('1', '2026-11-01', 'Blu opening', 'income', 500_000, 'blu'),
+    tx('2', '2026-11-01', 'Wallet opening', 'income', 100_000, 'wallet'),
+  ];
+  const investments = [
+    {
+      id: 'eth', name: 'Ethereum', symbol: 'ETH', kind: 'crypto', categoryId: 'crypto', groupId: 'triv', currency: 'IDR',
+      mark: { price: 40_000_000, rate: 1, date: '2026-11-20' },
+      activity: [{ id: 'buy-eth', type: 'buy', date: '2026-11-01', quantity: 0.25, price: 35_000_000, fee: 0, rate: 1, note: '' }],
+    },
+    {
+      id: 'nvda', name: 'NVIDIA', symbol: 'NVDA', kind: 'stock', categoryId: 'stock', groupId: 'gotrade', currency: 'USD',
+      mark: { price: 200, rate: 16_000, date: '2026-11-20' },
+      activity: [{ id: 'buy-nvda', type: 'buy', date: '2026-11-01', quantity: 2, price: 180, fee: 0, rate: 16_000, note: '' }],
+    },
+  ];
+
+  const result = assetCategoryRows(categories, groups, accounts, transactions, investments, '2026-11-30');
+  assert.deepEqual(result.map((category) => [category.name, category.total]), [
+    ['Bank', 500_000],
+    ['Cash', 100_000],
+    ['Cryptocurrency', 10_000_000],
+    ['Stock', 6_400_000],
+  ]);
+  assert.deepEqual(result[2].groups[0].entries.map((entry) => entry.name), ['Ethereum · ETH']);
+  assert.equal(result[2].groups[0].total, 10_000_000);
+  assert.deepEqual(result[3].groups[0].entries.map((entry) => entry.name), ['NVIDIA · NVDA']);
+});
+
+test('asset hierarchy keeps legacy sources visible without mutating old backups', () => {
+  const accounts = [{ id: 'dana', name: 'DANA', type: 'emoney' }];
+  const transactions = [tx('1', '2026-11-01', 'Opening', 'income', 250_000, 'dana')];
+  const result = assetCategoryRows([], [], accounts, transactions, [], '2026-11-30');
+  assert.deepEqual(result.map((category) => [category.name, category.total]), [['E-wallet', 250_000]]);
+  assert.equal(result[0].entries[0].name, 'DANA');
 });

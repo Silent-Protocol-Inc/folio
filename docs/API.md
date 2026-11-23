@@ -90,7 +90,7 @@ Passkeys use WebAuthn through `@simplewebauthn`. Each flow has two calls: get op
 
 ### `POST /api/passkeys/enroll/options`
 
-`{ "password": "current password" }` → `{ "id", "options" }`. Up to 10 passkeys per account.
+`{}` → `{ "id", "options" }`. Requires an authenticated session; the authenticator must verify the user. Up to 10 passkeys per account.
 
 ### `POST /api/passkeys/enroll/verify`
 

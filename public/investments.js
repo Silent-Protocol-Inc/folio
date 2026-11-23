@@ -14,6 +14,7 @@ const investmentEvents = [['buy','Buy / add position'],['sell','Sell / redeem'],
 const quantityScale = 1e12;
 const quantityRound = amount => Math.round(amount * quantityScale) / quantityScale;
 const quantityLabel = amount => amount.toLocaleString('en-GB',{maximumFractionDigits:12});
+const unitsLabel = amount => quantityLabel(amount)+' '+(amount===1?'unit':'units');
 const investmentHoldings = () => state.investments ?? [];
 const holdingBy = (id,db=state) => db.investments?.find(holding => holding.id===id);
 
@@ -102,18 +103,19 @@ function investmentCard(row) {
  const markDetail=holding.mark&&units>0&&holding.currency!==state.currency?' · '+money(units*holding.mark.price,holding.currency):'';
  return '<article class="panel item-card investment-card"><div class="panel-title">'+blockIcon('investment','blue')+chip(backupTag,market===null?'orange':'')+'</div>'+
   '<div><h2>'+safe(name)+'</h2><p class="subhead">'+safe(investmentKindLabel.get(holding.kind)+(holding.account?' · '+holding.account:''))+'</p></div>'+
-  value(valueLine)+'<p class="invest-units">'+safe(quantityLabel(units)+' units'+markDetail)+'</p>'+
+  value(valueLine)+'<p class="invest-units">'+safe(unitsLabel(units)+markDetail)+'</p>'+
   '<div class="progress-label"><span>Open cost '+safe(report(cost))+'</span><b class="'+investmentTone(unrealized)+'">'+safe(unrealized===null?'No valuation':investmentDelta(unrealized))+'</b></div>'+
   '<div class="card-actions">'+makeTrade(holding)+makePrice(holding)+button('investment-detail','Details','chevron','text-button',attr(holding))+'</div></article>';
 }
 function investmentRegister(id) {
  const item=holdingBy(id);
- const record=item??{name:'',symbol:'',account:'',kind:'stock',currency:state.currency,activity:[],mark:null};
+ const record=item??{name:'',symbol:'',account:'',kind:'stock',currency:state.currency,activity:[],mark:null,categoryId:'',groupId:''};
  const locked=record.activity.length>0||Boolean(record.mark);
  const form=field('Holding name','name',record.name,'text','maxlength="120" required placeholder="e.g. IDX equity fund"','wide')+
   select('Asset class','kind',investmentKinds,record.kind)+select('Currency','currency',currencies,record.currency,locked?'disabled':'')+
+  assignmentFields(investmentCategoryTypes,record.categoryId,record.groupId)+
   field('Ticker or reference','symbol',record.symbol,'text','maxlength="32" placeholder="Optional"')+
-  field('Broker or account','account',record.account,'text','maxlength="120" placeholder="Optional"','');
+  field('Broker or account','account',record.account,'text','maxlength="120" placeholder="Optional when no subcategory"','');
  const remove=item?button('investment-remove','Delete holding','','btn danger',attr(item)):'';
  formModal(item?'Edit holding':'Add holding',form,item?'Save changes':'Save holding',async event=>{
   const data=readForm(event.target);
@@ -121,7 +123,11 @@ function investmentRegister(id) {
   if(!name)return feedback('Enter a holding name.');
   const current=holdingBy(id);
   if(id&&!current)return feedback('This holding was removed.');
-  const saved={...record,...current,...data,id:id||uid(),name,symbol:data.symbol.trim(),account:data.account.trim()};
+  const category=categoryBy(data.categoryId), group=assetGroupBy(data.groupId);
+  if(group&&group.categoryId!==category?.id)return feedback('Choose a subcategory inside the selected category.');
+  const kind=category?.type==='crypto'||category?.type==='stock'?category.type:data.kind;
+  const saved={...record,...current,...data,id:id||uid(),name,kind,symbol:data.symbol.trim(),account:group?.name||data.account.trim(),
+   ...(category?{categoryId:category.id}:{categoryId:undefined}),...(group?{groupId:group.id}:{groupId:undefined})};
   if(current&&(current.activity.length||current.mark))saved.currency=current.currency;
   const savedSuccessfully=await update(db=>{
    db.investments??=[];
@@ -131,6 +137,12 @@ function investmentRegister(id) {
   },item?'Holding updated.':'Holding added.');
   if(savedSuccessfully&&!item&&!modal.open)investmentActivity(saved.id);
  },remove);
+ const element=$('#modal-form',modal);
+ adaptAssignment(element,investmentCategoryTypes);
+ element.elements.categoryId.addEventListener('change',event=>{
+  const category=categoryBy(event.target.value);
+  if(category?.type==='crypto'||category?.type==='stock')element.elements.kind.value=category.type;
+ });
 }
 const investmentRateInput = (currency,rate) => currency==='IDR'?'':'<div class="invest-rate wide">'+
  field('IDR per 1 '+currency,'rate',rate,'number',digits+' required')+button('investment-rate','Use reference rate','currency','btn','data-currency="'+safe(currency)+'"')+
@@ -142,17 +154,23 @@ function investmentPrice(id) {
  const holding=holdingBy(id);
  if(!holding)return;
  const mark=holding.mark;
- const fields='<p class="form-note wide">'+safe(holding.name+' · '+holding.currency)+'. Enter the latest price or NAV per unit. For a single property or deposit, use the total value as the price of one unit.</p>'+
+ const fields='<p class="form-note wide">'+safe(holding.name+' · '+holding.currency)+'. Enter either a unit price or the whole position value in '+state.currency+'.</p>'+
+  select('Value input','valueMode',[['unit','Price or NAV per unit'],['total','Total position value in '+state.currency]],'unit','','wide')+
   investmentNumber('Price or NAV per unit','price',mark?.price??'','min="0"')+
   dateField('Valuation date','date',mark?.date||today(),true,today())+investmentRateInput(holding.currency,mark?.rate??'');
  formModal('Update holding value',fields,'Save valuation',event=>{
   const data=readForm(event.target);
-  const price=Number(data.price),rate=holding.currency==='IDR'?1:Number(data.rate);
+  const input=Number(data.price),rate=holding.currency==='IDR'?1:Number(data.rate),units=investmentStats(holding).units;
+  const price=data.valueMode==='total'&&units>0?input*state.reportRate/(units*rate):input;
+  if(data.valueMode==='total'&&!(units>0))return feedback('Record a position before entering its total value.');
   if(!investmentValue(price,true)||!investmentValue(rate))return feedback('Enter a valid valuation and exchange rate.');
   const latest=holdingBy(id);
   if(!latest||latest.currency!==holding.currency)return feedback('This holding changed. Reopen it to continue.');
   update(db=>{holdingBy(id,db).mark={price,rate,date:data.date};},'Valuation saved.');
  },mark?button('investment-clear-price','Clear valuation','','btn danger',attr(holding)):'');
+ const form=$('#modal-form',modal), input=form.elements.price;
+ const adapt=()=>{input.closest('label').firstChild.textContent=form.elements.valueMode.value==='total'?'Total position value in '+state.currency:'Price or NAV per unit';};
+ form.elements.valueMode.addEventListener('change',adapt);adapt();
 }
 
 function investmentActivity(id,eventId) {
@@ -160,7 +178,9 @@ function investmentActivity(id,eventId) {
  if(!holding)return;
  const entry=holding.activity.find(item=>item.id===eventId);
  const activity=entry??{type:'buy',date:today(),quantity:'',price:'',fee:0,rate:'',note:''};
- const fields='<p class="form-note wide">'+safe(holding.name+' · '+holding.currency)+'. Record trades in units. For an existing holding, enter its opening units and original cost per unit.</p>'+
+ const opening=!entry&&!holding.activity.length;
+ const fields='<p class="form-note wide">'+safe(holding.name+' · '+holding.currency)+'. Record asset quantity and price, or start with the whole position value in '+state.currency+'.</p>'+
+  (opening?select('Opening input','inputMode',[['units','Asset quantity and unit price'],['value','Total position value in '+state.currency]],'units','','wide'):'')+
   select('Activity','type',investmentEvents,activity.type)+dateField('Date','date',activity.date,true,today())+
   investmentNumber('Units','quantity',activity.quantity,'min="0.000000000001"')+
   investmentNumber('Price per unit','price',activity.price,'min="0"')+
@@ -170,27 +190,36 @@ function investmentActivity(id,eventId) {
  const remove=entry?button('investment-remove-event','Delete activity','','btn danger',attr(holding)+' data-event="'+safe(entry.id)+'"'):'';
  formModal(entry?'Edit investment activity':'Record investment activity',fields,entry?'Save changes':'Save activity',event=>{
   const data=readForm(event.target);
-  const isIncome=data.type==='income';
-  const quantity=isIncome?0:quantityRound(Number(data.quantity));
-  const price=Number(data.price),fee=Number(data.fee);
+  const direct=opening&&data.inputMode==='value', type=direct?'buy':data.type, isIncome=type==='income';
+  const quantity=isIncome?0:direct?1:quantityRound(Number(data.quantity));
   const rate=holding.currency==='IDR'?1:Number(data.rate);
-  if(!investmentValue(price,data.type!=='income')||!investmentValue(fee,true)||!investmentValue(rate)||(!isIncome&&!investmentValue(quantity)))return feedback('Enter valid amounts, units and exchange rate.');
-  const recorded={id:entry?.id??uid(),type:data.type,date:data.date,quantity,price,fee,rate,note:data.note.trim()};
+  const entered=Number(data.price), price=direct?entered*state.reportRate/rate:entered, fee=direct?0:Number(data.fee);
+  if(!investmentValue(price,type!=='income')||!investmentValue(fee,true)||!investmentValue(rate)||(!isIncome&&!investmentValue(quantity)))return feedback('Enter valid amounts, units and exchange rate.');
+  const recorded={id:entry?.id??uid(),type,date:data.date,quantity,price,fee,rate,note:data.note.trim()};
   const latest=holdingBy(id);
   if(!latest||latest.currency!==holding.currency||(entry&&!latest.activity.some(row=>row.id===entry.id)))return feedback('This holding changed. Reopen it to continue.');
   const list=entry?latest.activity.map(row=>row.id===entry.id?recorded:row):[...latest.activity,recorded];
   if(!investmentStats({...latest,activity:list}))return feedback('A sale exceeds the units held on its trade date. Check the dates and quantities.');
-  update(db=>{holdingBy(id,db).activity=list;},entry?'Activity updated.':'Activity recorded.');
+  update(db=>{
+   const saved=holdingBy(id,db);
+   saved.activity=list;
+   if(direct)saved.mark={price,rate,date:data.date};
+  },entry?'Activity updated.':direct?'Position value recorded.':'Activity recorded.');
  },remove);
  const form=$('#modal-form',modal);
  const adapt=()=>{
-  const income=form.elements.type.value==='income';
-  form.elements.quantity.closest('label').hidden=income;
-  form.elements.quantity.disabled=income;
-  form.elements.price.closest('label').firstChild.textContent=income?'Gross cash received':'Price per unit';
+  const direct=opening&&form.elements.inputMode.value==='value', income=form.elements.type.value==='income';
+  form.elements.type.closest('label').hidden=direct;
+  form.elements.type.disabled=direct;
+  form.elements.quantity.closest('label').hidden=income||direct;
+  form.elements.quantity.disabled=income||direct;
+  form.elements.fee.closest('label').hidden=direct;
+  form.elements.fee.disabled=direct;
+  form.elements.price.closest('label').firstChild.textContent=direct?'Total position value in '+state.currency:income?'Gross cash received':'Price per unit';
   form.elements.price.min=income?'0.000000000001':'0';
  };
  form.elements.type.addEventListener('change',adapt);
+ if(opening)form.elements.inputMode.addEventListener('change',adapt);
  adapt();
 }
 async function useInvestmentRate(target) {
@@ -242,12 +271,13 @@ function removeInvestmentActivity(id,eventId) {
  });
 }
 const investmentValue=(value,zero=false)=>Number.isFinite(value)&&(zero?value>=0:value>0)&&value<=100000000000000;
-function validInvestments(holdings) {
+function validInvestments(holdings,categoryIds=new Set(),groupById=new Map()) {
  if(holdings===undefined)return true;
  if(!Array.isArray(holdings)||holdings.length>1500)return false;
  const distinct=rows=>new Set(rows.map(item=>item.id)).size===rows.length;
  return holdings.every(item=>item&&validText(item.id)&&item.id.length>0&&validText(item.name)&&item.name.trim()&&
   validText(item.symbol)&&validText(item.account)&&investmentKindLabel.has(item.kind)&&currencies.includes(item.currency)&&
+  (item.categoryId===undefined||categoryIds.has(item.categoryId))&&(item.groupId===undefined||groupById.get(item.groupId)===item.categoryId)&&
   (item.mark===null||(item.mark&&validDate(item.mark.date)&&investmentValue(item.mark.price,true)&&investmentValue(item.mark.rate)&&(item.currency!=='IDR'||item.mark.rate===1)))&&
   Array.isArray(item.activity)&&item.activity.length<=15000&&item.activity.every(row=>row&&validText(row.id)&&row.id.length>0&&
    ['buy','sell','income'].includes(row.type)&&validDate(row.date)&&validText(row.note)&&investmentValue(row.price,row.type!=='income')&&

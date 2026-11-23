@@ -8,10 +8,35 @@ const id = (p) => `${p}-${String(++n).padStart(4, "0")}`;
 const base = { currency: "IDR", rate: 1, note: "" };
 const months = ["2026-06", "2026-07", "2026-08", "2026-09", "2026-10", "2026-11"];
 const day = (m, d) => `${m}-${String(d).padStart(2, "0")}`;
-const tx = (date, type, title, amount, category, account = "BCA payroll") => ({ ...base, id: id("tx"), date, type, title, amount, category, account });
+const assetCategories = [
+  { id: "category-bank", name: "Bank", type: "bank" },
+  { id: "category-cash", name: "Cash", type: "cash" },
+  { id: "category-crypto", name: "Cryptocurrency", type: "crypto" },
+  { id: "category-stock", name: "Stock", type: "stock" },
+  { id: "category-ewallet", name: "E-wallet", type: "emoney" },
+  { id: "category-investment", name: "Other investments", type: "investment" },
+];
+const assetGroups = [
+  { id: "group-triv", categoryId: "category-crypto", name: "Triv" },
+  { id: "group-gotrade", categoryId: "category-stock", name: "Gotrade" },
+  { id: "group-stockbit", categoryId: "category-stock", name: "Stockbit" },
+  { id: "group-bibit", categoryId: "category-investment", name: "Bibit" },
+];
+const accounts = [
+  { id: "account-bca", name: "BCA payroll", type: "bank", categoryId: "category-bank" },
+  { id: "account-jago", name: "Jago", type: "bank", categoryId: "category-bank" },
+  { id: "account-wallet", name: "Wallet", type: "cash", categoryId: "category-cash" },
+  { id: "account-pocket", name: "Pocket", type: "cash", categoryId: "category-cash" },
+  { id: "account-dana", name: "DANA", type: "emoney", categoryId: "category-ewallet" },
+  { id: "account-ovo", name: "OVO", type: "emoney", categoryId: "category-ewallet" },
+];
+const accountId = (name) => accounts.find((account) => account.name === name)?.id;
+const tx = (date, type, title, amount, category, account = "BCA payroll") => ({ ...base, id: id("tx"), date, type, title, amount, category, account, accountId: accountId(account) });
 
 const transactions = [];
-transactions.push({ ...base, id: "tx-opening-balance", date: "2026-06-01", type: "income", title: "Opening balance", amount: 6_000_000, category: "Balance adjustment", account: "Cash balance", balanceAdjustment: true, note: "Starting cash on hand" });
+for (const [account, amount] of [["BCA payroll", 6_000_000], ["Jago", 3_000_000], ["Wallet", 500_000], ["Pocket", 250_000], ["DANA", 300_000], ["OVO", 175_000]]) {
+  transactions.push({ ...base, id: id("tx"), date: "2026-06-01", type: "income", title: "Opening balance", amount, category: "Balance adjustment", account, accountId: accountId(account), balanceAdjustment: true, note: `Opening balance for ${account}` });
+}
 months.forEach((m, i) => {
   const last = m === "2026-11"; // the current month is still running
   transactions.push(tx(day(m, 1), "income", "Monthly salary", 18_500_000, "Salary"));
@@ -60,16 +85,20 @@ const budgets = [
 const buy = (date, quantity, price, fee = 0) => ({ id: id("act"), type: "buy", date, quantity, price, fee, rate: 1, note: "" });
 const income = (date, price) => ({ id: id("act"), type: "income", date, quantity: 0, price, fee: 0, rate: 1, note: "" });
 const investments = [
-  { id: id("inv"), name: "Money market fund", symbol: "RDPU", kind: "fund", account: "Bibit", currency: "IDR",
+  { id: id("inv"), name: "Ethereum", symbol: "ETH", kind: "crypto", account: "Triv", categoryId: "category-crypto", groupId: "group-triv", currency: "IDR",
+    mark: { date: "2026-11-18", price: 52_000_000, rate: 1 }, activity: [buy("2026-09-12", 0.18, 48_000_000)] },
+  { id: id("inv"), name: "NVIDIA", symbol: "NVDA", kind: "stock", account: "Gotrade", categoryId: "category-stock", groupId: "group-gotrade", currency: "IDR",
+    mark: { date: "2026-11-18", price: 3_080_000, rate: 1 }, activity: [buy("2026-08-20", 2, 2_760_000)] },
+  { id: id("inv"), name: "Money market fund", symbol: "RDPU", kind: "fund", account: "Bibit", categoryId: "category-investment", groupId: "group-bibit", currency: "IDR",
     mark: { date: "2026-11-18", price: 2_046, rate: 1 }, activity: months.map((m) => buy(day(m, 3), 250, 2_000)) },
   { id: id("inv"), name: "Retail government bond ORI028", symbol: "ORI028", kind: "bond", account: "Bank", currency: "IDR",
     mark: { date: "2026-11-18", price: 1_000_000, rate: 1 }, activity: [buy("2026-07-15", 10, 1_000_000), income("2026-10-15", 156_000)] },
   { id: id("inv"), name: "Gold savings", symbol: "XAU (g)", kind: "metal", account: "Pegadaian", currency: "IDR",
     mark: { date: "2026-11-18", price: 1_745_000, rate: 1 }, activity: [buy("2026-06-20", 2, 1_610_000), buy("2026-09-20", 1, 1_690_000)] },
-  { id: id("inv"), name: "Bank Central Asia", symbol: "BBCA", kind: "stock", account: "Stockbit", currency: "IDR",
+  { id: id("inv"), name: "Bank Central Asia", symbol: "BBCA", kind: "stock", account: "Stockbit", categoryId: "category-stock", groupId: "group-stockbit", currency: "IDR",
     mark: { date: "2026-11-18", price: 9_650, rate: 1 }, activity: [buy("2026-08-05", 300, 9_200, 4_140), income("2026-11-06", 51_000)] },
 ];
 
-const workspace = { version: 1, demo: false, currency: "IDR", reportRate: 1, reportDate: "", transactions, debts, subscriptions, goals, budgets, investments };
+const workspace = { version: 1, demo: false, currency: "IDR", reportRate: 1, reportDate: "", assetCategories, assetGroups, accounts, transactions, debts, subscriptions, goals, budgets, investments };
 writeFileSync(new URL("./demo-workspace.json", import.meta.url), JSON.stringify(workspace, null, 1) + "\n");
 console.log(`demo-workspace.json: ${transactions.length} transactions, ${debts.length} debts, ${subscriptions.length} subscriptions, ${goals.length} goals, ${budgets.length} budgets, ${investments.length} holdings`);

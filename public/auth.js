@@ -5,6 +5,7 @@
  */
 import {startAuthentication,startRegistration,browserSupportsWebAuthn} from '@simplewebauthn/browser';
 import * as balance from './balance.js';
+import * as assets from './assets.js';
 
 const byId=id=>document.getElementById(id);
 const login=byId('login-form');
@@ -37,14 +38,18 @@ function formError(form,message){
 }
 async function runForm(form,button,operation){
  formError(form,'');
+ const busyLabel=button.querySelector('[data-button-label]');
+ const previousLabel=busyLabel?.textContent;
  for(const control of form.querySelectorAll('button'))control.disabled=true;
  button.setAttribute('aria-busy','true');
+ if(busyLabel&&button.dataset.busyLabel)busyLabel.textContent=button.dataset.busyLabel;
  try{await operation();}
  catch(error){
   formError(form,error.name==='NotAllowedError'||error.name==='AbortError'?'Passkey sign-in was cancelled or no matching passkey was available.':error.message||'Unable to complete the request. Try again.');
  }finally{
   for(const control of form.querySelectorAll('button'))control.disabled=false;
   button.removeAttribute('aria-busy');
+  if(busyLabel)busyLabel.textContent=previousLabel;
  }
 }
 function loadScript(src){
@@ -56,9 +61,9 @@ function loadScript(src){
 async function enter(session){
  user=session;
  if(!user){show('login');return;}
- if(user.mustChange){show('change');return;}
+ if(user.mustChange){byId('change-email').value=user.email;show('change');return;}
  const saved=await api('workspace');
- window.Folio={...saved,user,api,openSecurity,balance};
+ window.Folio={...saved,user,api,openSecurity,balance,assets};
  await loadScript('/investments.js');
  await loadScript('/app.js');
  const name=shortenEmail(user.email);
@@ -90,17 +95,16 @@ login.querySelector('.password-toggle').addEventListener('click',event=>{
  button.setAttribute('aria-pressed',String(reveal));
 });
 byId('passkey-login').addEventListener('click',event=>{
- const email=login.elements.email;
- if(!email.reportValidity())return;
  void runForm(login,event.currentTarget,async()=>{
   if(!browserSupportsWebAuthn())throw Error('Passkeys require a supported browser and secure connection.');
-  const {id,options}=await api('passkeys/login/options',{email:email.value});
+  const {id,options}=await api('passkeys/login/options',{});
   const response=await startAuthentication({optionsJSON:options});
   const result=await api('passkeys/login/verify',{id,response});
   login.reset();
   await enter(result.user);
  });
 });
+if(!browserSupportsWebAuthn())byId('passkey-login').hidden=true;
 function matchingPasswords(values){
  if(values.newPassword!==values.confirmation)throw Error('The new passwords do not match.');
  return {currentPassword:values.currentPassword,newPassword:values.newPassword};
@@ -150,7 +154,7 @@ async function openSecurity(message=''){
  }catch(error){if(list.isConnected)list.textContent=error.message;}
 }
 function securityForm(title,body,submitLabel,operation){
- securityPage(title,'<form id="security-form"><div class="form-grid">'+body+'</div>'+errorLine+formActions(submitLabel)+'</form>');
+ securityPage(title,'<form id="security-form"><input name="email" type="email" autocomplete="username" value="'+escape(user.email)+'" hidden><div class="form-grid">'+body+'</div>'+errorLine+formActions(submitLabel)+'</form>');
  const form=byId('security-form');
  form.querySelector('[data-security-back]').onclick=()=>void openSecurity();
  form.onsubmit=event=>{

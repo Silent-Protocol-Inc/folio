@@ -13,6 +13,7 @@ const incomeCategories = ['Salary','Freelance','Debt repayment','Other'];
 const allCategories = [...new Set([...incomeCategories,...expenseCategories])];
 const sources = ['Person','Online lender','Bank','Credit card','Other'];
 const cycles = {weekly:'Weekly',monthly:'Monthly',yearly:'Yearly'};
+const accountTypes = [['bank','Bank'],['emoney','E-money'],['cash','Cash'],['other','Other liquid account']];
 const icons = {
  investment:'<path d="M3 4v16h18M6 14l5-5 4 3 5-6m-5 0h5v5"/>',
  dashboard:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
@@ -32,7 +33,9 @@ const icons = {
  bag:'<path d="M4 8h16l1 13H3zm5 2V6a3 3 0 1 1 6 0v4"/>',car:'<path d="m4 10 2-5h12l2 5m-16 0h16l1 3v5H3v-5zm1 8v2m14-2v2M7 14h1m8 0h1"/>',
  home:'<path d="m3 10 9-7 9 7v10h-6v-6H9v6H3Z"/>',info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v5m0-8h.01"/>',
  edit:'<path d="m4 16 11-11a2 2 0 0 1 3 0l1 1a2 2 0 0 1 0 3L8 20H4zm9-9 4 4"/>',
- download:'<path d="M12 3v12m-5-5 5 5 5-5M4 15v5h16v-5"/>',check:'<path d="m4 12 5 5L20 6"/>'
+ download:'<path d="M12 3v12m-5-5 5 5 5-5M4 15v5h16v-5"/>',check:'<path d="m4 12 5 5L20 6"/>',
+ eye:'<path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.5"/>',
+ 'eye-off':'<path d="m3 3 18 18M10.6 6.2Q11.3 6 12 6c6.5 0 10 6 10 6a17 17 0 0 1-3 3.8M6.2 6.2C3.5 8 2 12 2 12s3.5 6 10 6c1.1 0 2.1-.2 3-.5M9.9 9.9a3 3 0 0 0 4.2 4.2"/>'
 };
 const icon = name => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+icons[name]+'</svg>';
 const blockIcon = (name,tone='') => '<span class="ico '+tone+'">'+icon(name)+'</span>';
@@ -67,6 +70,9 @@ const sum = (list,read) => list.reduce((total,item)=>total+read(item),0);
 const base = item => round(item.amount*item.rate);
 const original = item => money(item.amount,item.currency);
 const report = amount => money(amount/state.reportRate,state.currency);
+const privacyKey = 'folio-dashboard-values-hidden';
+let valuesHidden = localStorage.getItem(privacyKey)==='true';
+const dashboardReport = amount => valuesHidden?'••••••':report(amount);
 const signed = item => (item.type==='income'?'+':'−')+original(item);
 const outstanding = item => Math.max(0,round(item.amount-sum(item.payments,x=>x.amount)));
 const savings = item => round(sum(item.contributions,x=>x.amount));
@@ -81,9 +87,10 @@ const totals = list => ({income:sum(operational(list).filter(x=>x.type==='income
 const cashBalanceThrough = date => window.Folio.balance.cashBalanceThrough(state.transactions,date);
 
 function blank() {
- return {version:1,demo:false,currency:'IDR',reportRate:1,reportDate:'',transactions:[],debts:[],subscriptions:[],goals:[],budgets:[],investments:[]};
+ return {version:1,demo:false,currency:'IDR',reportRate:1,reportDate:'',accounts:[],transactions:[],debts:[],subscriptions:[],goals:[],budgets:[],investments:[]};
 }
 let state=window.Folio.workspace??blank();
+state.accounts??=[];
 let toastTimer;
 function toast(text) {
  const element=$('#toast');
@@ -98,7 +105,7 @@ async function save(next,message,close=false) {
  const submit=form?.querySelector('button[type=submit]');
  if(submit)submit.disabled=true;
  try{
-  const {revision}=await window.Folio.api('workspace',{workspace:{...next,demo:false,investments:next.investments??[]},revision:window.Folio.revision},'PUT');
+  const {revision}=await window.Folio.api('workspace',{workspace:{...next,demo:false,accounts:next.accounts??[],investments:next.investments??[]},revision:window.Folio.revision},'PUT');
   window.Folio.revision=revision;
   state=next;
   if(close&&modal.open&&(!form||form.isConnected))modal.close();
@@ -194,34 +201,48 @@ function overview() {
  const list=inMonth(month);
  const selected=totals(list);
  const balance=cashBalanceThrough(month+'-31');
+ const market=window.Folio.assets.investmentMarketValue(state.investments??[]);
+ const total=window.Folio.assets.trackedAssetTotal(state.accounts,state.transactions,state.investments??[],month+'-31');
  const net=selected.income-selected.expense;
  const debt=sum(state.debts.filter(item=>item.direction==='owe'),item=>base({...item,amount:outstanding(item)}));
  const saved=sum(state.goals,item=>base({...item,amount:savings(item)}));
  const metrics=[['Income',selected.income,'up','green'],['Expenses',selected.expense,'down','pink'],['Debt to pay',debt,'debt','orange'],['Goal savings',saved,'goal','blue']];
+ const privacy=iconButton('toggle-values',valuesHidden?'Show total value':'Hide total value',valuesHidden?'eye':'eye-off');
  return title('Overview','A clear view of where your money stands.',monthControl())+
- '<section class="hero" aria-label="Tracked cash balance"><div class="hero-art" aria-hidden="true"></div><span class="hero-corner">'+safe(state.currency)+'</span>'+
- '<div class="hero-copy"><div class="hero-label">'+icon('wallet')+'Tracked cash balance</div><div class="hero-value">'+safe(report(balance))+'</div><div class="hero-foot">'+chip((net>=0?'+':'')+report(net))+'<span>Cash flow in '+safe(monthLabel(month,true))+'</span>'+button('balance-adjustment',state.transactions.length?'Adjust balance':'Set opening balance','','text-button')+'</div></div></section>'+
+ '<section class="hero" aria-label="Total tracked value"><div class="hero-art" aria-hidden="true"></div><span class="hero-corner">'+safe(state.currency)+'</span>'+
+ '<div class="hero-copy"><div class="hero-label">'+icon('wallet')+'Total tracked value '+privacy+'</div><div class="hero-value">'+safe(dashboardReport(total))+'</div><div class="hero-breakdown"><span>Liquid '+safe(dashboardReport(balance))+'</span><span>Investments '+safe(dashboardReport(market))+'</span></div><div class="hero-foot">'+chip((net>=0?'+':'')+report(net))+'<span>Cash flow in '+safe(monthLabel(month,true))+'</span>'+button('balance-adjustment',state.transactions.length?'Adjust balance':'Set opening balance','','text-button')+'</div></div></section>'+
+ assetSourceOverview(month+'-31')+
  '<div class="metrics">'+metrics.map(([label,value,symbol,tone])=>'<div class="metric">'+blockIcon(symbol,tone)+'<div><small>'+label+'</small><b>'+safe(report(value))+'</b></div></div>').join('')+'</div>'+
  '<div class="split">'+cashChart()+spendingChart(list,selected.expense)+'</div><div class="split">'+
  section('Recent transactions','For '+monthLabel(month),list.sort(dateSort).slice(0,5).map(recentRow).join('')||empty('No transactions this month.'),link('transactions','View all'))+
  section('Upcoming payments','Debt deadlines and renewals',reminders().slice(0,4).map(item=>reminderRow(item)).join('')||empty('Nothing is due.'),button('reminders','View all','','text-button'))+'</div>'+investmentOverview();
 }
 
+function assetSourceOverview(throughDate) {
+ const accounts=window.Folio.assets.liquidAccountBalances(state.accounts,state.transactions,throughDate);
+ const rows=accounts.map(account=>'<div class="asset-source"><span>'+safe(account.name)+'<small>Liquid · '+safe(accountTypes.find(([type])=>type===account.type)?.[1]||'Other')+'</small></span><b>'+safe(dashboardReport(account.balance))+'</b></div>');
+ const unassigned=round(cashBalanceThrough(throughDate)-sum(accounts,account=>account.balance));
+ if(unassigned)rows.push('<div class="asset-source"><span>Unassigned cash<small>Legacy transactions</small></span><b>'+safe(dashboardReport(unassigned))+'</b></div>');
+ for(const row of portfolio().rows.filter(item=>item.units>0))rows.push('<div class="asset-source"><span>'+safe(row.holding.name)+'<small>Investment · '+safe(investmentKindLabel.get(row.holding.kind)||'Other')+'</small></span><b>'+safe(row.market===null?'No valuation':dashboardReport(row.market))+'</b></div>');
+ return section('Value sources','Liquid accounts and priced investments in '+state.currency,rows.length?'<div class="asset-sources">'+rows.join('')+'</div>':empty('Add a money source or investment to build your total.'),button('settings','Manage sources','','text-button'));
+}
+
 const optionList=(options,selected)=>options.map(option=>{
  const [value,label]=Array.isArray(option)?option:[option,option];
  return '<option value="'+safe(value)+'"'+(value===selected?' selected':'')+'>'+safe(label)+'</option>';
 }).join('');
-const filter={query:'',type:'all',period:'month'};
+const filter={query:'',type:'all',period:'month',sort:'date',direction:'desc'};
 function filteredTransactions() {
  const query=filter.query.trim().toLowerCase();
- return state.transactions.filter(item=>(filter.period==='all'||item.date.startsWith(month))&&(filter.type==='all'||item.type===filter.type)&&(!query||[item.title,item.category,item.account,item.note,item.currency].some(text=>(text||'').toLowerCase().includes(query)))).sort(dateSort);
+ const rows=state.transactions.filter(item=>(filter.period==='all'||item.date.startsWith(month))&&(filter.type==='all'||item.type===filter.type)&&(!query||[item.title,item.category,item.account,item.note,item.currency].some(text=>(text||'').toLowerCase().includes(query))));
+ return window.Folio.assets.sortTransactions(rows,filter.sort,filter.direction);
 }
 function transactionRows() {
  return filteredTransactions().map(item=>'<div class="list-item transaction-row"><div class="tx-name">'+txIcon(item)+'<div class="row-main"><strong>'+safe(item.title)+'</strong><small>'+safe(item.balanceAdjustment?'Balance correction'+(item.note?' · '+item.note:''):item.account||item.category)+'</small></div></div><span class="cell">'+safe(item.category)+'</span><span class="cell">'+safe(displayDate(item.date))+'</span><div class="amount">'+txText(item)+'<small>'+safe(item.currency===state.currency?displayDate(item.date):'≈ '+report(base(item)))+'</small></div>'+iconButton('transaction','Edit '+item.title,'edit',attr(item))+'</div>').join('')||empty('No transactions match your filters.');
 }
 function transactions() {
  return title('Transactions','Add and review money coming in and going out.')+
- '<div class="toolbar"><div class="filters"><input id="tx-search" type="search" placeholder="Search transactions" aria-label="Search transactions" value="'+safe(filter.query)+'"><select id="tx-type" aria-label="Transaction type">'+optionList([['all','All types'],['income','Income'],['expense','Expense']],filter.type)+'</select><select id="tx-period" aria-label="Transaction period">'+optionList([['month','Selected month'],['all','All dates']],filter.period)+'</select></div><div class="cluster">'+monthControl()+button('csv','CSV','download')+'</div></div>'+
+ '<div class="toolbar"><div class="filters"><input id="tx-search" type="search" placeholder="Search transactions" aria-label="Search transactions" value="'+safe(filter.query)+'"><select id="tx-type" aria-label="Transaction type">'+optionList([['all','All types'],['income','Income'],['expense','Expense']],filter.type)+'</select><select id="tx-period" aria-label="Transaction period">'+optionList([['month','Selected month'],['all','All dates']],filter.period)+'</select><select id="tx-sort" aria-label="Sort transactions by">'+optionList([['date','Date'],['value','Value'],['name','Name']],filter.sort)+'</select><select id="tx-direction" aria-label="Sort direction">'+optionList([['desc','Descending'],['asc','Ascending']],filter.direction)+'</select></div><div class="cluster">'+monthControl()+button('csv','CSV','download')+'</div></div>'+
  '<section class="panel table-panel" aria-label="Transaction list"><div class="transaction-row table-head" aria-hidden="true"><span>Transaction</span><span class="cell">Category</span><span class="cell">Date</span><span class="amount">Amount</span><span></span></div><div id="transaction-list">'+transactionRows()+'</div></section>';
 }
 function card(item,sub,symbol,tone,body,buttons,badge) {
@@ -363,31 +384,68 @@ function confirmAction(title,description,label,submit) {
 function balanceAdjustment() {
  const label=state.transactions.length?'Adjust balance':'Set opening balance';
  const fields='<p class="form-note wide">Enter the money you actually have. Folio records the difference in Transactions without counting it as income or spending.</p>'+
+  (state.accounts.length?select('Money source','accountId',state.accounts.map(account=>[account.id,account.name]),state.accounts[0].id,'','wide'):'')+
   field('Actual balance in '+state.currency,'actual','','number','min="-100000000000000" max="100000000000000" step="0.01" inputmode="decimal" required autofocus')+
   dateField('Effective date','date',today(),true,today())+'<label class="wide">Reason<textarea name="note" maxlength="2000" placeholder="Optional, for example bank correction"></textarea></label>'+
   '<p id="balance-preview" class="form-note wide" aria-live="polite"></p>';
  formModal(label,fields,label,event=>{
   const values=readForm(event.target), actual=Number(values.actual);
-  const delta=window.Folio.balance.balanceDelta(state.transactions,values.date,actual,state.reportRate);
+  const account=state.accounts.find(item=>item.id===values.accountId);
+  const transactions=account?state.transactions.filter(item=>item.accountId===account.id):state.transactions;
+  const delta=window.Folio.balance.balanceDelta(transactions,values.date,actual,state.reportRate);
   if(!Number.isFinite(actual)||Math.abs(actual)>100000000000000)return feedback('Enter a valid actual balance.');
   if(!values.date)return feedback('Choose an effective date.');
   if(round(Math.abs(delta)*state.reportRate)===0)return feedback('The tracked balance already matches that amount.');
   if(!(Math.abs(delta)<=100000000000000&&Number.isFinite(delta*state.reportRate)))return feedback('The required correction is too large.');
-  const opening=state.transactions.length===0;
+  const opening=transactions.length===0;
   update(next=>next.transactions.push({
    id:uid(),title:opening?'Opening balance':'Balance adjustment',amount:Math.abs(delta),currency:state.currency,
    rate:state.reportRate,rateDate:state.reportDate||'',date:values.date,type:delta>0?'income':'expense',
-   category:'Balance adjustment',account:'Cash balance',note:(values.note||'').trim(),balanceAdjustment:true
+   category:'Balance adjustment',account:account?.name||'Cash balance',...(account?{accountId:account.id}:{}),note:(values.note||'').trim(),balanceAdjustment:true
   }),opening?'Opening balance recorded.':'Balance adjusted.');
  });
  const form=$('#modal-form',modal), preview=$('#balance-preview',form);
  const draw=()=>{
-  const values=readForm(form), actual=Number(values.actual), tracked=cashBalanceThrough(values.date||today())/state.reportRate;
+  const values=readForm(form), actual=Number(values.actual), account=state.accounts.find(item=>item.id===values.accountId);
+  const transactions=account?state.transactions.filter(item=>item.accountId===account.id):state.transactions;
+  const tracked=window.Folio.balance.cashBalanceThrough(transactions,values.date||today())/state.reportRate;
   if(values.actual===''||!Number.isFinite(actual)){preview.textContent='Current tracked balance: '+report(tracked*state.reportRate)+'.';return;}
-  const delta=window.Folio.balance.balanceDelta(state.transactions,values.date||today(),actual,state.reportRate);
+  const delta=window.Folio.balance.balanceDelta(transactions,values.date||today(),actual,state.reportRate);
   preview.textContent=delta===0?'The tracked balance already matches.':'Folio will record '+(delta>0?'an increase of ':'a decrease of ')+money(Math.abs(delta),state.currency)+'.';
  };
  form.addEventListener('input',draw);draw();
+}
+
+function accountForm(id) {
+ const existing=state.accounts.find(account=>account.id===id);
+ const account=existing??{name:'',type:'bank'};
+ const fields=field('Source name','name',account.name,'text','maxlength="120" required autofocus','wide')+
+  select('Type','type',accountTypes,account.type,'','wide')+
+  (existing?'':field('Opening balance in '+state.currency,'opening','','number','min="-100000000000000" max="100000000000000" step="0.01" inputmode="decimal" placeholder="Optional"','wide'));
+ const remove=existing?button('account-delete','Delete source','','btn danger',attr(existing)):'';
+ formModal(existing?'Edit money source':'Add money source',fields,existing?'Save changes':'Add source',event=>{
+  const values=readForm(event.target), name=values.name.trim(), opening=Number(values.opening||0);
+  if(!name)return feedback('Enter a source name.');
+  if(!accountTypes.some(([type])=>type===values.type))return feedback('Choose a valid source type.');
+  if(!Number.isFinite(opening)||Math.abs(opening)>100000000000000)return feedback('Enter a valid opening balance.');
+  const saved={id:existing?.id||uid(),name,type:values.type};
+  update(next=>{
+   const index=next.accounts.findIndex(item=>item.id===saved.id);
+   if(index<0)next.accounts.push(saved);else next.accounts[index]=saved;
+   for(const transaction of next.transactions)if(transaction.accountId===saved.id)transaction.account=saved.name;
+   if(!existing&&opening!==0)next.transactions.push({
+    id:uid(),title:'Opening balance',amount:Math.abs(opening),currency:state.currency,rate:state.reportRate,rateDate:state.reportDate||'',date:today(),
+    type:opening>0?'income':'expense',category:'Balance adjustment',account:saved.name,accountId:saved.id,note:'Opening balance for '+saved.name,balanceAdjustment:true
+   });
+  },existing?'Money source updated.':'Money source added.');
+ },remove);
+}
+
+function removeAccount(id) {
+ const account=state.accounts.find(item=>item.id===id);
+ if(!account)return;
+ if(state.transactions.some(item=>item.accountId===id))return feedback('Move or delete this source’s transactions before deleting it.');
+ confirmAction('Delete money source?','Delete '+account.name+'? No transactions are linked to it.','Delete source',()=>update(next=>{next.accounts=next.accounts.filter(item=>item.id!==id);},'Money source deleted.'));
 }
 function history(items,label,currency) {
  return items?.length?'<section class="wide"><p class="form-note">'+safe(label)+'</p><div class="history">'+items.slice().reverse().map(entry=>'<p><span>'+safe(displayDate(entry.date))+'</span><b>'+safe(money(entry.amount,currency))+'</b></p>').join('')+'</div></section>':'';
@@ -405,7 +463,9 @@ function recordForm(kind,id) {
  const limitLabel=({debt:'Original amount',goal:'Savings target',budget:'Monthly limit'})[kind]||'Amount';
  const moneyFields=amountField(limitLabel,item.amount)+select('Currency','currency',currencies,item.currency,fixedCurrency?'disabled':'')+rateFields;
  const date=(label,required=false)=>dateField(label,'due',item.due,required);
- const account=field('Account or wallet','account',item.account,'text','maxlength="120" placeholder="Bank, cash, e-wallet…"');
+ const account=state.accounts.length
+  ?select('Money source','accountId',[['',item.account?'Unassigned · '+item.account:'Unassigned'],...state.accounts.map(source=>[source.id,source.name])],item.accountId||'')+'<input type="hidden" name="account" value="'+safe(item.account||'')+'">'
+  :field('Account or wallet','account',item.account,'text','maxlength="120" placeholder="Bank, cash, e-wallet…"');
  let fields;
  if(kind==='transaction'){
   const type=item.type||'expense';
@@ -437,7 +497,11 @@ function recordForm(kind,id) {
    if(debt&&amount>round(outstanding(debt)+item.amount))return feedback('Amount exceeds the original debt balance.');
   }
   const record={...item,...values,id:id||uid(),title:name,amount,currency,rate,rateDate,note:(values.note||'').trim()};
-  if(kind==='transaction')record.account=(values.account||'').trim();
+  if(kind==='transaction'){
+   const selected=state.accounts.find(source=>source.id===values.accountId);
+   record.account=selected?.name||(values.account||'').trim();
+   if(selected)record.accountId=selected.id;else delete record.accountId;
+  }
   if(kind==='debt')Object.assign(record,{payments:item.payments||[],lead:Number(values.lead)});
   if(kind==='subscription')Object.assign(record,{lead:Number(values.lead),anchor:item.due===values.due?item.anchor||Number(values.due.slice(-2)):Number(values.due.slice(-2))});
   if(kind==='goal')record.contributions=item.contributions||[];
@@ -490,7 +554,7 @@ function flowForm(type,id) {
  const description=kind==='goal'?'Goal allocations track money set aside. The cash-flow ledger stays the same.':'Folio also adds a transaction to your ledger.';
  formModal(label,'<p class="form-note wide">'+safe(item.title+' · '+item.currency+'. '+description)+'</p>'+
   amountField('Amount',type==='renewal'?item.amount:limit??'',limit)+dateField('Date','date',today(),true,today())+
-  (kind==='goal'?'':field('Account or wallet','account','','text','maxlength="120" placeholder="Optional"','wide')),label,event=>{
+  (kind==='goal'?'':state.accounts.length?select('Money source','accountId',[['','Unassigned'],...state.accounts.map(account=>[account.id,account.name])],'','','wide'):field('Account or wallet','account','','text','maxlength="120" placeholder="Optional"','wide')),label,event=>{
   const values=readForm(event.target), amount=Number(values.amount), current=itemBy(kind,id);
   if(!current)return feedback('This record is no longer available.');
   const available=kind==='debt'?outstanding(current):withdrawal?savings(current):Infinity;
@@ -499,7 +563,8 @@ function flowForm(type,id) {
    const record=itemBy(kind,id,next);
    if(kind==='goal'){record.contributions.push({amount:withdrawal?-amount:amount,date:values.date});return;}
    const receipt=kind==='debt'&&record.direction==='owed';
-   const tx={id:uid(),title:record.title,amount,currency:record.currency,rate:record.rate,rateDate:record.rateDate||'',date:values.date,type:receipt?'income':'expense',category:kind==='subscription'?'Subscriptions':receipt?'Debt repayment':'Debt payment',account:(values.account||'').trim(),note:'',link:{kind,id}};
+   const account=state.accounts.find(source=>source.id===values.accountId);
+   const tx={id:uid(),title:record.title,amount,currency:record.currency,rate:record.rate,rateDate:record.rateDate||'',date:values.date,type:receipt?'income':'expense',category:kind==='subscription'?'Subscriptions':receipt?'Debt repayment':'Debt payment',account:account?.name||(values.account||'').trim(),...(account?{accountId:account.id}:{}),note:'',link:{kind,id}};
    if(kind==='debt')record.payments.push({amount,date:values.date,txId:tx.id});
    else {
     tx.link.renewalFrom=record.due;tx.link.renewalTo=nextRenewal(record);
@@ -574,10 +639,11 @@ function remindersModal() {
   (reminders().map(item=>reminderRow(item,true)).join('')||empty('No upcoming deadlines.')));
 }
 function settings() {
+ const sourceRows=state.accounts.map(account=>'<div class="list-item"><div class="row-main"><strong>'+safe(account.name)+'</strong><small>'+safe(accountTypes.find(([type])=>type===account.type)?.[1]||'Liquid account')+'</small></div>'+iconButton('account-edit','Edit '+account.name,'edit',attr(account))+'</div>').join('');
  openModal('Settings','<section class="settings-block"><h3>Reporting currency</h3><p class="form-note">Dashboard totals use this currency. Each record keeps its original amount and exchange rate.</p><form id="settings-currency" class="form-grid">'+
  select('Currency','currency',currencies,state.currency)+field('IDR per 1 unit (optional)','manual',state.currency==='IDR'?'':state.reportRate,'number',digits)+
  '<p class="wide form-note">Leave the rate blank to use the latest Frankfurter reference rate.</p><button type="submit" class="btn primary wide">Save reporting currency</button><p class="error wide" hidden role="alert"></p></form></section>'+
- '<section class="settings-block"><h3>Cash balance</h3><p class="form-note">Folio currently tracks '+safe(report(cashBalanceThrough(today())))+'. Corrections appear in Transactions.</p>'+button('balance-adjustment',state.transactions.length?'Adjust balance':'Set opening balance','wallet')+'</section>'+
+ '<section class="settings-block"><div class="panel-title"><div><h3>Money sources</h3><p class="form-note">Bank, e-money, and cash balances are derived from their transactions. Investments stay in the portfolio.</p></div>'+button('account-add','Add source','plus')+'</div>'+sourceRows+(state.accounts.length?'':empty('No money sources yet. Legacy cash remains included in your total.'))+'<div class="cluster">'+button('balance-adjustment',state.transactions.length?'Adjust a balance':'Set opening balance','wallet')+'</div></section>'+
  '<section class="settings-block"><h3>Data and backups</h3><p class="form-note">Your records are saved to this Folio account. Export a backup any time.</p><div class="cluster">'+button('backup','Export backup','download')+button('restore','Import backup')+(legacyWorkspace()?button('legacy-import','Import old browser records'):'')+'</div></section>'+
  '<section class="settings-block"><h3>Account</h3><p class="form-note">Manage your password, passkeys, and sign-in session.</p>'+button('security','Security','settings')+'</section>');
  const form=$('#settings-currency',modal);
@@ -603,8 +669,11 @@ const validLead=value=>Number.isInteger(value)&&value>=0&&value<=365;
 const validRow=item=>item&&validText(item.id)&&item.id.length>0&&validText(item.title)&&item.title.length>0&&validText(item.note)&&currencies.includes(item.currency)&&validAmount(item.amount)&&validAmount(item.rate);
 function validBackup(db) {
  if(!db||db.version!==1||db.demo!==false||!currencies.includes(db.currency)||!validAmount(db.reportRate)||(db.reportDate&&!validDate(db.reportDate)))return false;
+ const accounts=db.accounts??[];
+ if(!Array.isArray(accounts)||accounts.length>20000||accounts.some(account=>!validText(account?.id)||!account.id.length||!validText(account.name)||!account.name.length||!accountTypes.some(([type])=>type===account.type))||new Set(accounts.map(account=>account.id)).size!==accounts.length)return false;
+ const accountIds=new Set(accounts.map(account=>account.id));
  if(!Object.values(collections).every(group=>Array.isArray(db[group])&&db[group].length<=20000&&db[group].every(validRow)&&new Set(db[group].map(row=>row.id)).size===db[group].length))return false;
- return db.transactions.every(x=>validDate(x.date)&&['income','expense'].includes(x.type)&&(x.balanceAdjustment===true?x.category==='Balance adjustment':x.balanceAdjustment===undefined&&allCategories.includes(x.category))&&validText(x.account)&&
+ return db.transactions.every(x=>validDate(x.date)&&['income','expense'].includes(x.type)&&(x.balanceAdjustment===true?x.category==='Balance adjustment':x.balanceAdjustment===undefined&&allCategories.includes(x.category))&&validText(x.account)&&(!x.accountId||accountIds.has(x.accountId))&&
    (!x.link||(['debt','subscription'].includes(x.link.kind)&&validText(x.link.id)&&(!x.link.renewalFrom||validDate(x.link.renewalFrom))&&(!x.link.renewalTo||validDate(x.link.renewalTo)))))&&
   db.debts.every(x=>['owe','owed'].includes(x.direction)&&sources.includes(x.source)&&(!x.due||validDate(x.due))&&validLead(x.lead)&&
    Array.isArray(x.payments)&&x.payments.every(entry=>validAmount(entry?.amount)&&validDate(entry.date)&&(!entry.txId||validText(entry.txId)))&&round(sum(x.payments,entry=>entry.amount))<=x.amount)&&
@@ -619,6 +688,7 @@ async function importBackup(event) {
   if(file.size>8*1024*1024)throw Error('File too large');
   const next=JSON.parse(await file.text());
   if(!validBackup(next))throw Error('Invalid backup');
+  next.accounts??=[];
   next.investments??=[];
   confirmAction('Restore this backup?','This replaces your current workspace with the records in '+file.name+'.','Restore backup',()=>save(next,'Backup restored.',true));
  } catch {feedback('This file is not a valid Folio backup.');}
@@ -627,6 +697,7 @@ function legacyWorkspace() {
  try {
   const legacy=JSON.parse(localStorage.getItem(storageKey));
   if(!validBackup(legacy))return null;
+  legacy.accounts??=[];
   legacy.investments??=[];
   const hasEntries=Object.values(collections).some(group=>legacy[group].length)||legacy.investments.length;
   return hasEntries?legacy:null;
@@ -674,7 +745,7 @@ document.addEventListener('input',event=>{
 });
 document.addEventListener('change',event=>{
  if(event.target.name==='investment-filter'){investmentFilter=event.target.value;render();$('#main select[name=investment-filter]')?.focus({preventScroll:true});return;}
- const key={'tx-type':'type','tx-period':'period'}[event.target.id];
+ const key={'tx-type':'type','tx-period':'period','tx-sort':'sort','tx-direction':'direction'}[event.target.id];
  if(key){filter[key]=event.target.value;$('#transaction-list').innerHTML=transactionRows();}
 });
 document.addEventListener('submit',event=>{
@@ -702,6 +773,10 @@ document.addEventListener('click',event=>{
   case 'period':monthDialog();break;
   case 'reminders':remindersModal();break;
   case 'settings':settings();break;
+  case 'account-add':accountForm();break;
+  case 'account-edit':accountForm(id);break;
+  case 'account-delete':removeAccount(id);break;
+  case 'toggle-values':valuesHidden=!valuesHidden;localStorage.setItem(privacyKey,String(valuesHidden));render();break;
   case 'balance-adjustment':balanceAdjustment();break;
   case 'more':openModal('More','<nav aria-label="More pages"><div class="nav-group">'+[pageMap.get('investments'),pages[2],pages[4],pages[6]].map(item=>navLink(item)).join('')+'</div>'+button('settings','Settings','settings','side-link')+'</nav>');break;
   case 'close':modal.close();break;

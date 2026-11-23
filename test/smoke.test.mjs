@@ -80,11 +80,22 @@ test('account: sign in, forced password change, workspace round trip', async () 
   assert.equal(changed.status, 200);
   keepCookie(changed);
 
+  const passkeyOptions = await call('/api/passkeys/login/options', { method: 'POST', body: {} });
+  assert.equal(passkeyOptions.status, 200, 'discoverable passkey sign-in does not require an email');
+  const passkeyBody = await passkeyOptions.json();
+  assert.deepEqual(passkeyBody.options.allowCredentials ?? [], [], 'the authenticator chooses the Folio account');
+
   const before = await (await call('/api/workspace')).json();
   const demo = JSON.parse(readFileSync(new URL('../docs/demo/demo-workspace.json', import.meta.url), 'utf8'));
   const legacy = structuredClone(demo);
   legacy.transactions = legacy.transactions.filter((row) => !row.balanceAdjustment);
   assert.equal(admissibleWorkspace(legacy), true, 'version-1 workspaces without adjustment markers remain valid');
+  const sourced = structuredClone(legacy);
+  sourced.accounts = [{ id: 'cash-1', name: 'Daily wallet', type: 'cash' }];
+  sourced.transactions[0].accountId = 'cash-1';
+  assert.equal(admissibleWorkspace(sourced), true, 'liquid accounts and linked transactions are accepted');
+  sourced.transactions[0].accountId = 'missing';
+  assert.equal(admissibleWorkspace(sourced), false, 'transactions cannot reference a missing liquid account');
   const saved = await call('/api/workspace', { method: 'PUT', body: { revision: before.revision, workspace: demo } });
   assert.equal(saved.status, 200);
   const { revision } = await saved.json();
